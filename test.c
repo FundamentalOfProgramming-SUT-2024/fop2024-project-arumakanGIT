@@ -1,47 +1,104 @@
-#include <ncurses.h>
-#include <signal.h>
-#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
 
-// هندلر برای سیگنال SIGWINCH
-void handle_winch(int sig)
+int checkMail(char *email)
 {
-    // به‌روزرسانی ابعاد ترمینال
-    endwin();
-    refresh();
-    clear();
-
-    // گرفتن اندازه جدید ترمینال
-    int new_rows, new_cols;
-    getmaxyx(stdscr, new_rows, new_cols);
-
-    // چاپ اندازه جدید در ترمینال
-    mvprintw(0, 0, "Terminal resized: %d rows, %d cols", new_rows, new_cols);
-    refresh();
+    if (strchr(email, ' '))
+        return 0;
+    if (!strrchr(email, '@'))
+        return 0;
+    if (strchr(email, '@') != strrchr(email, '@'))
+        return 0;
+    if (!strrchr(email, '.'))
+        return 0;
+    if (strchr(email, '.') != strrchr(email, '.'))
+        return 0;
+    int a = strchr(email, '@') - email;
+    int dot = strchr(email, '.') - email;
+    if (!a)
+        return 0;
+    if (a > dot)
+        return 0;
+    if (!(dot - a - 1))
+        return 0;
+    if (!(strlen(email) - dot - 1))
+        return 0;
+    return 1;
 }
 
 int main()
 {
-    // راه‌اندازی ncurses
-    initscr();
-    noecho();
-    cbreak();
-
-    // ثبت هندلر سیگنال SIGWINCH
-    signal(SIGWINCH, handle_winch);
-
-    // چاپ پیام اولیه
-    int rows, cols;
-    getmaxyx(stdscr, rows, cols);
-    mvprintw(0, 0, "Terminal size: %d rows, %d cols", rows, cols);
-    mvprintw(1, 0, "Resize the terminal and watch for updates...");
-    refresh();
-
-    // حلقه برای خواندن ورودی
-    while (getch() != 'q') {
-        // برنامه اجرا می‌شود تا زمانی که کاربر کلید 'q' را بزند.
-    }
-
-    // پاکسازی و خروج
-    endwin();
+    char *email = "arumakan@gmail.com";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "arumakangmailcom";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "arumakangmail.com";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "arumakan@gmailcom";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "a@g.c";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "arumakan@.com";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "arumakan@gmail.";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = " @gmail.com";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "r@sharif.edu";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "@gmail.com";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "arum@akan@gmail.com";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
+    email = "arum.akan@gmail.com";
+    puts(email);
+    if (checkMail(email))
+        printf("Correct\n");
+    else
+        printf("InCorrect!\n");
     return 0;
 }
