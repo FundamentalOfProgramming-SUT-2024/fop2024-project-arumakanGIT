@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <ncurses.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 // ʘ
 // ۩
@@ -51,6 +53,7 @@ void UseColor()
     init_pair(2, COLOR_WHITE, COLOR_BLACK);
     bkgd(COLOR_PAIR(2));
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    init_pair(3, COLOR_BLACK, COLOR_RED);
 }
 
 int checkMail(char *email)
@@ -80,14 +83,15 @@ int checkMail(char *email)
 
 void add_New_User()
 {
-    curs_set(1);
     noecho();
     keypad(stdscr, TRUE);
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
     char *username = (char *)malloc(256), *password = (char *)malloc(256), *SHOWpassword = (char *)malloc(256), *email = (char *)malloc(256);
-    int checkUserName = 0, checkPassword = 0, checkEmail = 0, choice = 1, create = 0;
+
+    int checkUserName = 0, checkPassword = 0, checkEmail = 0, choice = 0, create = 0;
+
     username[0] = '\0';
     password[0] = '\0';
     email[0] = '\0';
@@ -98,27 +102,39 @@ void add_New_User()
     mvprintw((scrY / 2) - 1, scrX / 2 - 11, "Enter your name, hero:");
     mvprintw((scrY / 2) + 2, scrX / 2 - 10, "Enter your password:");
     mvprintw((scrY / 2) + 5, scrX / 2 - 9, "Enter your email:");
-    // mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Create");
-    // mvprintw((scrY / 2) + 9, scrX / 2 - 3, "Cancel");
+
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
-    char ch;
+
+    int ch;
     while (1)
     {
-        if (choice == 1)
+        curs_set(1);
+        if (choice == 0)
         {
             // USER NAME
 
+            move((scrY / 2) + 8, 0);
+            clrtoeol();
+            move((scrY / 2) + 10, 0);
+            clrtoeol();
+            mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Cancel");
+            mvprintw((scrY / 2) + 10, scrX / 2 - 3, "Create");
+
             attron(COLOR_PAIR(1));
-            // ch = ' ';
-            move((scrY / 2), scrX / 2 - 1);
+            move((scrY / 2), scrX / 2 + (strlen(username) / 2));
             while (1)
             {
                 ch = getch();
 
-                move((scrY / 2) + 8, 0);
+                move((scrY / 2) + 12, 0);
                 clrtoeol();
-                move((scrY / 2) + 9, 0);
+                move((scrY / 2) + 13, 0);
                 clrtoeol();
+                move((scrY / 2) + 14, 0);
+                clrtoeol();
+                move((scrY / 2) + 15, 0);
+                clrtoeol();
+
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(username) != 0)
                     username[strlen(username) - 1] = '\0';
                 else if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')
@@ -132,65 +148,64 @@ void add_New_User()
                     {
                         checkUserName = 0;
                         create = 0;
-                        move((scrY / 2) + 8, 0);
-                        clrtoeol();
-                        move((scrY / 2) + 9, 0);
-                        clrtoeol();
                         attroff(COLOR_PAIR(1));
-                        mvprintw((scrY / 2) + 9, (scrX / 2) - 9, "---Enter your Name---");
+                        mvprintw((scrY / 2) + 12, (scrX / 2) - 6, "Enter your Name");
                         attron(COLOR_PAIR(1));
-                        ch = ' ';
                     }
                     else
                     {
                         checkUserName = 1;
-                        if (checkEmail && checkPassword && checkUserName)
+                        if (checkPassword && checkUserName && checkEmail)
                             create = 1;
-                        break;
                     }
+                    break;
                 }
                 else
                 {
-                    move((scrY / 2) + 8, 0);
-                    clrtoeol();
-                    move((scrY / 2) + 9, 0);
-                    clrtoeol();
                     attroff(COLOR_PAIR(1));
-                    mvprintw((scrY / 2) + 8, (scrX / 2) - 20, "---You can only use uppercase letters,---");
-                    mvprintw((scrY / 2) + 9, (scrX / 2) - 19, "---lowercase letters, and UnderLine.---");
+                    mvprintw((scrY / 2) + 12, (scrX / 2) - 17, "You can only use uppercase letters,");
+                    mvprintw((scrY / 2) + 13, (scrX / 2) - 16, "lowercase letters, and UnderLine.");
                     attron(COLOR_PAIR(1));
                 }
+
+                if (checkPassword && checkUserName && checkEmail)
+                    create = 1;
 
                 move((scrY / 2), 0);
                 clrtoeol();
                 mvprintw((scrY / 2), (scrX / 2) - 1 - (strlen(username) / 2), "%s", username);
                 refresh();
             }
-            move((scrY / 2) + 8, 0);
-            clrtoeol();
-            move((scrY / 2) + 9, 0);
-            clrtoeol();
+
             attroff(COLOR_PAIR(1));
-            if (create)
-            {
-                mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Create");
-                mvprintw((scrY / 2) + 9, scrX / 2 - 3, "Cancel");
-            }
         }
-        else if (choice == 2)
+        else if (choice == 1)
         {
 
             // PASSWORD
 
+            move((scrY / 2) + 8, 0);
+            clrtoeol();
+            move((scrY / 2) + 10, 0);
+            clrtoeol();
+            mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Cancel");
+            mvprintw((scrY / 2) + 10, scrX / 2 - 3, "Create");
+
             attron(COLOR_PAIR(1));
-            move((scrY / 2) + 3, scrX / 2 - 1);
-            // ch = ' ';
+            move((scrY / 2) + 3, scrX / 2 + (strlen(SHOWpassword) / 2));
             while (1)
             {
                 ch = getch();
 
-                move((scrY / 2) + 8, 0);
+                move((scrY / 2) + 12, 0);
                 clrtoeol();
+                move((scrY / 2) + 13, 0);
+                clrtoeol();
+                move((scrY / 2) + 14, 0);
+                clrtoeol();
+                move((scrY / 2) + 15, 0);
+                clrtoeol();
+
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password) != 0)
                 {
                     password[strlen(password) - 1] = '\0';
@@ -208,64 +223,61 @@ void add_New_User()
                     if (strlen(password) >= 7)
                     {
                         checkPassword = 1;
-                        if (checkPassword && checkEmail && checkUserName)
+                        if (checkPassword && checkUserName && checkEmail)
                             create = 1;
-                        break;
                     }
                     else
                     {
                         checkPassword = 0;
                         create = 0;
-                        move((scrY / 2) + 8, 0);
-                        clrtoeol();
                         attroff(COLOR_PAIR(1));
-                        mvprintw((scrY / 2) + 8, (scrX / 2) - 24, "The password is too short. (Minimum 7 characters)");
+                        mvprintw((scrY / 2) + 12, (scrX / 2) - 24, "The password is too short. (Minimum 7 characters)");
                         attron(COLOR_PAIR(1));
-                        ch = ' ';
                     }
+                    break;
                 }
                 else
                 {
-                    move((scrY / 2) + 8, 0);
-                    clrtoeol();
                     attroff(COLOR_PAIR(1));
-                    mvprintw((scrY / 2) + 8, (scrX / 2) - 9, "---Invalid input---");
+                    mvprintw((scrY / 2) + 8, (scrX / 2) - 6, "Invalid input");
                     attron(COLOR_PAIR(1));
                 }
+
+                if (checkPassword && checkUserName && checkEmail)
+                    create = 1;
 
                 move((scrY / 2) + 3, 0);
                 clrtoeol();
                 mvprintw((scrY / 2) + 3, (scrX / 2) - 1 - (strlen(SHOWpassword) / 2), "%s", SHOWpassword);
                 refresh();
             }
-            move((scrY / 2) + 8, 0);
-            clrtoeol();
             attroff(COLOR_PAIR(1));
-            if (create)
-            {
-                mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Create");
-                mvprintw((scrY / 2) + 9, scrX / 2 - 3, "Cancel");
-            }
         }
-        else if (choice == 3)
+        else if (choice == 2)
         {
 
             // EMAIL
 
+            move((scrY / 2) + 8, 0);
+            clrtoeol();
+            move((scrY / 2) + 10, 0);
+            clrtoeol();
+            mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Cancel");
+            mvprintw((scrY / 2) + 10, scrX / 2 - 3, "Create");
+
             attron(COLOR_PAIR(1));
-            // ch = ' ';
-            move((scrY / 2) + 6, scrX / 2 - 1);
-            while (ch != '\n')
+            move((scrY / 2) + 6, scrX / 2 + (strlen(email) / 2));
+            while (1)
             {
                 ch = getch();
 
-                move((scrY / 2) + 8, 0);
+                move((scrY / 2) + 12, 0);
                 clrtoeol();
-                move((scrY / 2) + 9, 0);
+                move((scrY / 2) + 13, 0);
                 clrtoeol();
-                move((scrY / 2) + 10, 0);
+                move((scrY / 2) + 14, 0);
                 clrtoeol();
-                move((scrY / 2) + 11, 0);
+                move((scrY / 2) + 15, 0);
                 clrtoeol();
 
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(email) != 0)
@@ -280,65 +292,90 @@ void add_New_User()
                     if (checkMail(email))
                     {
                         checkEmail = 1;
-                        if (checkEmail && checkPassword && checkUserName)
+                        if (checkPassword && checkUserName && checkEmail)
                             create = 1;
-                        break;
                     }
                     else
                     {
                         checkEmail = 0;
                         create = 0;
-                        move((scrY / 2) + 8, 0);
-                        clrtoeol();
-                        move((scrY / 2) + 9, 0);
-                        clrtoeol();
-                        move((scrY / 2) + 10, 0);
-                        clrtoeol();
-                        move((scrY / 2) + 11, 0);
-                        clrtoeol();
                         attroff(COLOR_PAIR(1));
-                        mvprintw((scrY / 2) + 8, (scrX / 2) - 14, "The email you entered is incorrect.");
+                        mvprintw((scrY / 2) + 12, (scrX / 2) - 17, "The email you entered is incorrect.");
                         attron(COLOR_PAIR(1));
-                        ch = ' ';
                     }
+                    break;
                 }
                 else
                 {
                     attroff(COLOR_PAIR(1));
-                    mvprintw((scrY / 2) + 8, (scrX / 2) - 14, "Email can only contain numbers,");
-                    mvprintw((scrY / 2) + 9, (scrX / 2) - 14, "uppercase and lowercase letters,");
-                    mvprintw((scrY / 2) + 10, (scrX / 2) - 12, "and the following characters:");
-                    mvprintw((scrY / 2) + 11, (scrX / 2) - 17, " ـ ! # $ %% & \' * + - = ? ^ ` { } | ");
+                    mvprintw((scrY / 2) + 12, (scrX / 2) - 14, "Email can only contain numbers,");
+                    mvprintw((scrY / 2) + 13, (scrX / 2) - 14, "uppercase and lowercase letters,");
+                    mvprintw((scrY / 2) + 14, (scrX / 2) - 12, "and the following characters:");
+                    mvprintw((scrY / 2) + 15, (scrX / 2) - 17, " ـ ! # $ %% & \' * + - = ? ^ ` { } | ");
                     attron(COLOR_PAIR(1));
                 }
+
+                if (checkPassword && checkUserName && checkEmail)
+                    create = 1;
 
                 move((scrY / 2) + 6, 0);
                 clrtoeol();
                 mvprintw((scrY / 2) + 6, (scrX / 2) - 1 - (strlen(email) / 2), "%s", email);
                 refresh();
             }
-            move((scrY / 2) + 8, 0);
-            clrtoeol();
-            move((scrY / 2) + 9, 0);
-            clrtoeol();
-            move((scrY / 2) + 10, 0);
-            clrtoeol();
-            move((scrY / 2) + 11, 0);
-            clrtoeol();
             attroff(COLOR_PAIR(1));
-            if (create)
+        }
+        else if (choice == 3)
+        {
+            curs_set(0);
+            mvprintw((scrY / 2) + 10, scrX / 2 - 3, "Create");
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Cancel");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            ch = getch();
+            if (ch == '\n')
             {
-                mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Create");
-                mvprintw((scrY / 2) + 9, scrX / 2 - 3, "Cancel");
+                clear();
+                break;
             }
         }
         else if (choice == 4)
         {
-            // Create
-        }
-        else if (choice == 5)
-        {
-            // Cancel
+            mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Cancel");
+            curs_set(0);
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 10, scrX / 2 - 3, "Create");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            ch = getch();
+            if (ch == '\n')
+            {
+                char path[1024];
+                snprintf(path, 1024, "./.users/%s", username);
+                DIR *dir = opendir(path);
+                if (!dir)
+                {
+                    mkdir(path, 0777);
+                    dir = opendir(path);
+                    FILE *user;
+                    char filePathUserInfo[1024];
+                    snprintf(filePathUserInfo, 2048, "%s/UserInfo.txt", path);
+                    user = fopen(filePathUserInfo, "w");
+                    fprintf(user, "%s\n%s\n%s", username, password, email);
+                    /*
+                    char filePathMap[1024];
+                    snprintf(filePathMap, 2048, "%s/map.txt", path);
+                    user = fopen(filePathMap, "w");
+                    fclose(user);
+                    */
+                    clear();
+                    break;
+                }
+                else
+                {
+                    mvprintw((scrY / 2) + 12, (scrX / 2) - 17, "This name has already been created.");
+                    ch = getch();
+                }
+            }
         }
 
         if (ch == KEY_UP)
@@ -346,27 +383,16 @@ void add_New_User()
             if (create)
                 choice = (choice + 4) % 5;
             else
-                choice = (choice + 2) % 3;
+                choice = (choice + 3) % 4;
         }
-        else if (ch == KEY_DOWN)
+        else if (ch == KEY_DOWN || ch == '\n')
         {
             if (create)
                 choice = (choice + 1) % 5;
             else
-                choice = (choice + 1) % 3;
+                choice = (choice + 1) % 4;
         }
-        else if (ch == '\n')
-        {
-            if (choice == 1)
-            {
-                /* code */
-            }
-                }
     }
-
-    getch();
-    clear();
-    curs_set(0);
 }
 
 int RegisterMenu()
@@ -375,15 +401,36 @@ int RegisterMenu()
     getmaxyx(stdscr, scrY, scrX);
     UseColor();
 
-    DIR *dir = opendir("./users");
-    if (dir)
-    {
-    }
+#pragma region Editing here
 
-    // if ()
-    // {
-    //     /* code */
-    // }
+    DIR *dir = opendir("./.users");
+    if (!dir)
+    {
+        mkdir("./.users", 0777);
+        dir = opendir("./.users");
+    }
+    struct dirent *input;
+    FILE *fileinput;
+    int users = 0;
+    while ((input = readdir(dir)) != NULL)
+    {
+        if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
+            continue;
+        users++;
+    }
+    printw("%d", users);
+    /*
+        char **usersName = (char **)malloc((users + 2) * sizeof(char *));
+        int i = 0;
+        while ((input = readdir(dir)) != NULL)
+        {
+            if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
+                continue;
+            usersName[i] = input->d_name;
+            usersName[i][strlen(usersName[i])] = '\0';
+            i++;
+        }
+    */
 
     printAsciiArt('r', scrX, scrY, 28, 4);
     refresh();
@@ -391,6 +438,7 @@ int RegisterMenu()
 
     int choice = 0;
     int ch;
+
     while (1)
     {
 
@@ -451,15 +499,12 @@ int RegisterMenu()
                 return 1;
                 break;
             case 2:
-                /* code */
-                return 2;
+                // return 2;
                 break;
             case 3:
-                /* code */
-                return 3;
+                // return 3;
                 break;
             case 0:
-                ch = 'q';
                 clear();
                 return 0;
                 break;
@@ -467,12 +512,10 @@ int RegisterMenu()
             break;
         }
         refresh();
-        if (ch == 'q')
-            break;
     }
 }
 
-void EnteroPage()
+void EnterPage()
 {
     UseColor();
 
@@ -495,11 +538,11 @@ int main()
     noecho();
     curs_set(0);
 
-    // EnteroPage(stdscr);
-    // RegisterMenu(stdscr);
-    add_New_User();
+    EnterPage();
+    RegisterMenu();
+    // add_New_User();
 
-    getch();
+    // getch();
     endwin();
     return 0;
 }
