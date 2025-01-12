@@ -8,6 +8,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define MAX_NAMES 256
+#define MAX_LINE 1024
+
 // ʘ
 // ۩
 // ߷
@@ -81,6 +84,75 @@ int checkMail(char *email)
     return 1;
 }
 
+void updateUserInfo(char username[MAX_NAMES], int newH, int newGold)
+{
+    FILE *file;
+    file = fopen("./.users/Users.txt", "r");
+    int users_count, last;
+    fscanf(file, "%d %d\n", &users_count, &last);
+
+    if (strcmp(username, "") || !username)
+        users_count++;
+
+    int history[users_count], golds[users_count];
+    char names[users_count][MAX_NAMES];
+
+    for (int i = 0; i < users_count - 1; i++)
+    {
+        int h, g;
+        char name[MAX_NAMES];
+        fscanf(file, "%*S %d %s %d\n", &h, name, &g);
+        strcpy(names[i], name);
+        history[i] = h;
+        golds[i] = g;
+    }
+
+    if (strcmp(username, "") || !username)
+    {
+        last = users_count;
+        history[users_count - 1] = newH;
+        golds[users_count - 1] = newGold;
+        strcpy(names[users_count - 1], username);
+    }
+
+    if (last)
+    {
+        last--;
+        for (int i = 0; i < users_count; i++)
+            if (history[i] < history[last])
+                history[i] += 1;
+        history[last] = 1;
+    }
+
+    for (int i = 0; i < users_count - 1; i++)
+    {
+        for (int j = i + 1; j < users_count; j++)
+        {
+            if (golds[i] < golds[j])
+            {
+                int th, tg;
+                char t[MAX_NAMES];
+                strcpy(t, names[i]);
+                th = history[i];
+                tg = golds[i];
+                strcpy(names[i], names[j]);
+                golds[i] = golds[j];
+                history[i] = history[j];
+                strcpy(names[j], t);
+                golds[j] = tg;
+                history[j] = th;
+            }
+        }
+    }
+    fclose(file);
+
+    FILE *user;
+    user = fopen("./.users/Users.txt", "w");
+    fprintf(user, "%d %d\n", users_count, 0);
+    for (int i = 1; i <= users_count; i++)
+        fprintf(user, "%d %d %s %d\n", i, history[i - 1], names[i - 1], golds[i - 1]);
+}
+
 void add_New_User()
 {
     noecho();
@@ -88,7 +160,7 @@ void add_New_User()
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
-    char *username = (char *)malloc(256), *password = (char *)malloc(256), *SHOWpassword = (char *)malloc(256), *email = (char *)malloc(256);
+    char *username = (char *)malloc(MAX_NAMES), *password = (char *)malloc(MAX_NAMES), *SHOWpassword = (char *)malloc(MAX_NAMES), *email = (char *)malloc(MAX_NAMES);
 
     int checkUserName = 0, checkPassword = 0, checkEmail = 0, choice = 0, create = 0;
 
@@ -341,6 +413,9 @@ void add_New_User()
         }
         else if (choice == 4)
         {
+
+#pragma region Editing here
+
             mvprintw((scrY / 2) + 8, scrX / 2 - 3, "Cancel");
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
@@ -349,24 +424,29 @@ void add_New_User()
             ch = getch();
             if (ch == '\n')
             {
-                char path[1024];
-                snprintf(path, 1024, "./.users/%s", username);
+                char path[MAX_LINE];
+                snprintf(path, MAX_LINE, "./.users/%s", username);
                 DIR *dir = opendir(path);
                 if (!dir)
                 {
                     mkdir(path, 0777);
                     dir = opendir(path);
                     FILE *user;
-                    char filePathUserInfo[1024];
-                    snprintf(filePathUserInfo, 2048, "%s/UserInfo.txt", path);
+                    char filePathUserInfo[MAX_LINE + 14];
+                    snprintf(filePathUserInfo, MAX_LINE + 14, "%s/UserInfo.txt", path);
                     user = fopen(filePathUserInfo, "w");
                     fprintf(user, "%s\n%s\n%s", username, password, email);
-                    /*
-                    char filePathMap[1024];
-                    snprintf(filePathMap, 2048, "%s/map.txt", path);
-                    user = fopen(filePathMap, "w");
                     fclose(user);
-                    */
+                    // FILE *file = fopen("./.users/Users.txt", "r+");
+                    // int users_count;
+                    // fscanf(file, "%d %*S\n", &users_count);
+                    // rewind(file);
+                    // users_count++;
+                    // fprintf(file, "%d %d\n", users_count, users_count);
+                    // fseek(file, 0, SEEK_END);
+                    // fprintf(file, "%d %d %s %d\n", users_count, 0, username, 0);
+                    // fclose(file);
+                    updateUserInfo(username, 0, 0);
                     clear();
                     break;
                 }
@@ -400,15 +480,19 @@ int RegisterMenu()
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
     UseColor();
-
-#pragma region Editing here
-
     DIR *dir = opendir("./.users");
     if (!dir)
     {
         mkdir("./.users", 0777);
         dir = opendir("./.users");
     }
+
+    FILE *file;
+    file = fopen("./.users/Users.txt", "w");
+    if (file != NULL)
+        fprintf(file, "0 0\n");
+    fclose(file);
+
     struct dirent *input;
     FILE *fileinput;
     int users = 0;
@@ -419,18 +503,15 @@ int RegisterMenu()
         users++;
     }
     printw("%d", users);
-    /*
-        char **usersName = (char **)malloc((users + 2) * sizeof(char *));
-        int i = 0;
-        while ((input = readdir(dir)) != NULL)
-        {
-            if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
-                continue;
-            usersName[i] = input->d_name;
-            usersName[i][strlen(usersName[i])] = '\0';
-            i++;
-        }
-    */
+
+    if (users == 0)
+    {
+        refresh();
+        clear();
+        mvprintw((scrY / 2) - 5, (scrX / 2) - 4, "Welcome!");
+        add_New_User();
+        return 1;
+    }
 
     printAsciiArt('r', scrX, scrY, 28, 4);
     refresh();
@@ -518,7 +599,7 @@ int RegisterMenu()
 void EnterPage()
 {
     UseColor();
-
+    noecho();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
     printAsciiArt('R', scrX, scrY, 15, 0);
@@ -542,7 +623,6 @@ int main()
     RegisterMenu();
     // add_New_User();
 
-    // getch();
     endwin();
     return 0;
 }
