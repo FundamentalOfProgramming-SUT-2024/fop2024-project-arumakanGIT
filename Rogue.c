@@ -84,73 +84,28 @@ int checkMail(char *email)
     return 1;
 }
 
-void updateUserInfo(char username[MAX_NAMES], int newH, int newGold)
+void addToUserInfo(char username[MAX_NAMES])
 {
-    FILE *file;
-    file = fopen("./.users/Users.txt", "r");
+    FILE *read;
+    read = fopen("./.users/Users.txt", "r");
     int users_count, last;
-    fscanf(file, "%d %d\n", &users_count, &last);
-
-    if (strcmp(username, "") || !username)
-        users_count++;
-
+    fscanf(read, "%d %d\n", &users_count, &last);
     int history[users_count], golds[users_count];
     char names[users_count][MAX_NAMES];
-
-    for (int i = 0; i < users_count - 1; i++)
+    for (int i = 0; i < users_count; i++)
     {
-        int h, g;
-        char name[MAX_NAMES];
-        fscanf(file, "%*S %d %s %d\n", &h, name, &g);
-        strcpy(names[i], name);
-        history[i] = h;
-        golds[i] = g;
+        fscanf(read, "%d %s %d\n", &history[i], names[i], &golds[i]);
+        history[i]++;
     }
+    fclose(read);
 
-    if (strcmp(username, "") || !username)
-    {
-        last = users_count;
-        history[users_count - 1] = newH;
-        golds[users_count - 1] = newGold;
-        strcpy(names[users_count - 1], username);
-    }
-
-    if (last)
-    {
-        last--;
-        for (int i = 0; i < users_count; i++)
-            if (history[i] < history[last])
-                history[i] += 1;
-        history[last] = 1;
-    }
-
-    for (int i = 0; i < users_count - 1; i++)
-    {
-        for (int j = i + 1; j < users_count; j++)
-        {
-            if (golds[i] < golds[j])
-            {
-                int th, tg;
-                char t[MAX_NAMES];
-                strcpy(t, names[i]);
-                th = history[i];
-                tg = golds[i];
-                strcpy(names[i], names[j]);
-                golds[i] = golds[j];
-                history[i] = history[j];
-                strcpy(names[j], t);
-                golds[j] = tg;
-                history[j] = th;
-            }
-        }
-    }
-    fclose(file);
-
-    FILE *user;
-    user = fopen("./.users/Users.txt", "w");
-    fprintf(user, "%d %d\n", users_count, 0);
-    for (int i = 1; i <= users_count; i++)
-        fprintf(user, "%d %d %s %d\n", i, history[i - 1], names[i - 1], golds[i - 1]);
+    FILE *write;
+    write = fopen("./.users/Users.txt", "w");
+    fprintf(write, "%d %d\n", users_count + 1, last);
+    fprintf(write, "%d %s %d\n", 1, username, 0);
+    for (int i = 0; i < users_count; i++)
+        fprintf(write, "%d %s %d\n", history[i], names[i], golds[i]);
+    fclose(write);
 }
 
 void add_New_User()
@@ -168,6 +123,8 @@ void add_New_User()
     password[0] = '\0';
     email[0] = '\0';
 
+    clear();
+    refresh();
     printAsciiArt('r', scrX, scrY, 28, 7);
 
     mvprintw((scrY / 2) - 4, scrX / 2 - 21, "---Create your hero for an epic quest.---");
@@ -437,16 +394,7 @@ void add_New_User()
                     user = fopen(filePathUserInfo, "w");
                     fprintf(user, "%s\n%s\n%s", username, password, email);
                     fclose(user);
-                    // FILE *file = fopen("./.users/Users.txt", "r+");
-                    // int users_count;
-                    // fscanf(file, "%d %*S\n", &users_count);
-                    // rewind(file);
-                    // users_count++;
-                    // fprintf(file, "%d %d\n", users_count, users_count);
-                    // fseek(file, 0, SEEK_END);
-                    // fprintf(file, "%d %d %s %d\n", users_count, 0, username, 0);
-                    // fclose(file);
-                    updateUserInfo(username, 0, 0);
+                    addToUserInfo(username);
                     clear();
                     break;
                 }
@@ -488,21 +436,25 @@ int RegisterMenu()
     }
 
     FILE *file;
-    file = fopen("./.users/Users.txt", "w");
-    if (file != NULL)
+    file = fopen("./.users/Users.txt", "r");
+    if (!file)
+    {
+        file = fopen("./.users/Users.txt", "w");
         fprintf(file, "0 0\n");
+    }
     fclose(file);
 
     struct dirent *input;
     FILE *fileinput;
     int users = 0;
-    while ((input = readdir(dir)) != NULL)
-    {
-        if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
-            continue;
-        users++;
-    }
-    printw("%d", users);
+
+    // while ((input = readdir(dir)) != NULL)
+    // {
+    //     if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
+    //         continue;
+    //     users++;
+    // }
+    // printw("%d", users);
 
     if (users == 0)
     {
@@ -598,6 +550,8 @@ int RegisterMenu()
 
 void EnterPage()
 {
+    clear();
+    refresh();
     UseColor();
     noecho();
     int scrX, scrY;
