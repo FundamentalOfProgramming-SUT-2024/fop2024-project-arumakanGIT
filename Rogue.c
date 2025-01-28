@@ -294,8 +294,8 @@ void addToUserInfo(char username[MAX_NAMES])
 {
     FILE *read;
     read = fopen("./.users/Users.txt", "r");
-    int users_count, last;
-    fscanf(read, "%d %d\n", &users_count, &last);
+    int users_count;
+    fscanf(read, "%d\n", &users_count);
     int history[users_count], golds[users_count];
     char names[users_count][MAX_NAMES];
     for (int i = 0; i < users_count; i++)
@@ -307,10 +307,38 @@ void addToUserInfo(char username[MAX_NAMES])
 
     FILE *write;
     write = fopen("./.users/Users.txt", "w");
-    fprintf(write, "%d %d\n", users_count + 1, last);
+    fprintf(write, "%d\n", users_count + 1);
     fprintf(write, "%d %s %d\n", 1, username, 0);
     for (int i = 0; i < users_count; i++)
         fprintf(write, "%d %s %d\n", history[i], names[i], golds[i]);
+    fclose(write);
+}
+
+void EditUserInfo(char username[MAX_NAMES])
+{
+    FILE *read;
+    read = fopen("./.users/Users.txt", "r");
+    int users_count;
+    fscanf(read, "%d\n", &users_count);
+    int history[users_count], golds[users_count], target_index;
+    char names[users_count][MAX_NAMES];
+    for (int i = 0; i < users_count; i++)
+    {
+        fscanf(read, "%d %s %d\n", &history[i], names[i], &golds[i]);
+        if (strcmp(names[i], username) == 0)
+            target_index = i;
+        else
+            history[i]++;
+    }
+    fclose(read);
+
+    FILE *write;
+    write = fopen("./.users/Users.txt", "w");
+    fprintf(write, "%d\n", users_count);
+    fprintf(write, "%d %s %d\n", 1, username, golds[target_index]);
+    for (int i = 0; i < users_count; i++)
+        if (i != target_index)
+            fprintf(write, "%d %s %d\n", history[i], names[i], golds[i]);
     fclose(write);
 }
 
@@ -340,6 +368,89 @@ void new_pass(char username[MAX_NAMES])
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
+    mvprintw((scrY / 2) - 3, (scrX / 2) - 10, "Enter New Password : ");
+    int ch, p = 0;
+    char *password = (char *)malloc(MAX_NAMES);
+    password[0] = '\0';
+    while (1)
+    {
+        curs_set(0);
+        mvprintw((scrY / 2) + 1, (scrX / 2), "random password");
+        mvprintw((scrY / 2) + 3, (scrX / 2), "Done");
+        if (p == 0)
+        {
+            curs_set(1);
+            move((scrY / 2) - 1, (scrX / 2) + (strlen(password) / 2));
+            while (1)
+            {
+                ch = getch();
+                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password))
+                    password[strlen(password) - 1] = '\0';
+                else if (ch >= '!' && ch <= '~')
+                {
+                    password[strlen(password)] = (char)ch;
+                    password[strlen(password)] = '\0';
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+
+                move((scrY / 2) - 1, 0);
+                clrtoeol();
+                attron(COLOR_PAIR(3));
+                mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", password);
+                attroff(COLOR_PAIR(3));
+                refresh();
+            }
+        }
+        else if (p == 1)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 1, (scrX / 2), "random password");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+                    // char rp[MAX_NAMES];
+                    strcpy(password, random_pass());
+
+                    move((scrY / 2) - 1, 0);
+                    clrtoeol();
+                    attron(COLOR_PAIR(3));
+                    mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", password);
+                    attroff(COLOR_PAIR(3));
+                    refresh();
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+        else if (p == 2)
+        {
+
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 3, (scrX / 2), "Done");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+#pragma region I am editing here
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        if (ch == keybound)
+            p = (p + 2) % 3;
+        else if (ch == KEY_DOWN || ch == '\n')
+            p = (p + 1) % 3;
+    }
 }
 
 void securityQ(char username[MAX_LINE])
@@ -551,7 +662,7 @@ void log_in()
 
     FILE *read;
     read = fopen("./.users/Users.txt", "r");
-    fscanf(read, "%d %*S\n", &users_count);
+    fscanf(read, "%d\n", &users_count);
     for (int i = 0; i < 3; i++)
         strcpy(players[i], "\0");
 
@@ -713,10 +824,8 @@ void log_in()
             {
                 ch = getch();
 
-                if (ch == '\n' && strlen(username))
-                {
-#pragma region show warning
-                }
+                if (ch == '\n' && (strlen(username) == 0 || username_exist(username) == 0))
+                    mvprintw((scrY / 2) + 7, (scrX / 2) - 23, "There is no user with this username or email");
                 else if (ch == '\n' && username_exist(username))
                 {
                     clear();
@@ -739,17 +848,22 @@ void log_in()
             {
                 ch = getch();
 
-                if (ch == '\n' && strlen(username))
-                {
-#pragma region show warning
-                }
+                if (ch == '\n' && (strlen(username) == 0 || username_exist(username == 0)))
+                    mvprintw((scrY / 2) + 7, (scrX / 2) - 23, "There is no user with this username or email");
                 else if (ch == '\n' && username_exist(username))
                 {
-                    clear();
-                    refresh();
-                    search_login(username, password);
-                    free(SHOWpassword);
-                    break;
+                    int check = search_login(username, password);
+                    if (check == 1)
+                    {
+                        EditUserInfo(username);
+                        clear();
+                        refresh();
+                        free(SHOWpassword);
+                        break;
+#pragma region game start
+                    }
+                    else if (check == 2)
+                        mvprintw((scrY / 2) + 7, (scrX / 2) - 7, "Wrong password!");
                 }
                 else if (ch == KEY_DOWN || ch == KEY_UP)
                     break;
@@ -1128,7 +1242,7 @@ int RegisterMenu()
     if (!Users)
     {
         Users = fopen("./.users/Users.txt", "w");
-        fprintf(Users, "0 0\n");
+        fprintf(Users, "0\n");
     }
     fclose(Users);
 
