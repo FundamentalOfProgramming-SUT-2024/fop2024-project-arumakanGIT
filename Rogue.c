@@ -25,12 +25,12 @@
 // ψ
 // ░ ░ ░
 
-/*
-random password is ready
-*/
-
 int email_exist(char email[MAX_NAMES])
 {
+    /*
+    0 = not exist
+    1 = exist
+    */
     FILE *read;
     read = fopen("./.users/Login.txt", "r");
     int users_count;
@@ -40,6 +40,27 @@ int email_exist(char email[MAX_NAMES])
         char currentEmail[MAX_NAMES];
         fscanf(read, "%*S %*S %s\n", currentEmail);
         if (strcmp(currentEmail, email) == 0)
+            return 1;
+    }
+    fclose(read);
+    return 0;
+}
+
+int username_exist(char username[MAX_NAMES])
+{
+    /*
+    0 = not exist
+    1 = exist
+    */
+    FILE *read;
+    read = fopen("./.users/Login.txt", "r");
+    int users_count;
+    fscanf(read, "%d\n", &users_count);
+    for (int i = 0; i < users_count; i++)
+    {
+        char currentUsername[MAX_NAMES];
+        fscanf(read, "%s %*S %*S\n", currentUsername);
+        if (strcmp(currentUsername, username) == 0)
             return 1;
     }
     fclose(read);
@@ -311,8 +332,20 @@ void addToLogin(char username[MAX_NAMES], char password[MAX_NAMES], char email[M
     fprintf(write, "%s %s %s\n", username, encrypt(password, username), email);
 }
 
-void securityQ(char path[MAX_LINE])
+void new_pass(char username[MAX_NAMES])
 {
+#pragma region new password
+    noecho();
+    keypad(stdscr, TRUE);
+    UseColor();
+    int scrX, scrY;
+    getmaxyx(stdscr, scrY, scrX);
+}
+
+void securityQ(char username[MAX_LINE])
+{
+    char path[MAX_LINE + 16];
+    sprintf(path, "./.users/%s/sq.txt", username);
     noecho();
     keypad(stdscr, TRUE);
     UseColor();
@@ -416,14 +449,39 @@ void securityQ(char path[MAX_LINE])
             ch = getch();
             if (ch == '\n' && strlen(pet) && strlen(bf) && strlen(movie) && strlen(school))
             {
-                FILE *write;
-                char newPath[MAX_LINE + 7];
-                sprintf(newPath, "%s/sq.txt", path);
-                write = fopen(newPath, "w");
-                fprintf(write, "%s\n%s\n%s\n%s\n", pet, bf, school, movie);
-                clear();
-                refresh();
-                break;
+                FILE *read;
+                read = fopen(path, "r");
+                if (!read)
+                {
+                    fclose(read);
+                    FILE *write;
+                    write = fopen(path, "w");
+                    fprintf(write, "%s\n%s\n%s\n%s\n", pet, bf, school, movie);
+                    clear();
+                    refresh();
+                    break;
+                }
+                else
+                {
+                    char sq[4][MAX_NAMES];
+                    for (int i = 0; i < 4; i++)
+                        fscanf(read, "%s\n", sq[i]);
+                    if (strcmp(sq[0], pet) == 0 && strcmp(bf, sq[1]) == 0 && strcmp(school, sq[2]) == 0 && strcmp(movie, sq[3]) == 0)
+                    {
+                        clear();
+                        refresh();
+#pragma region add new pass
+                        // new_pass();
+                        break;
+                    }
+                    else
+                    {
+#pragma region show warning
+                        /*
+                        wrong security answer
+                        */
+                    }
+                }
             }
             else
                 mvprintw((scrY / 2) + 6, (scrX / 2) - 16, "Please answer all the questions.");
@@ -439,6 +497,42 @@ void securityQ(char path[MAX_LINE])
     refresh();
 }
 
+int search_login(char username[MAX_NAMES], char password[MAX_NAMES])
+{
+    /*
+    0 = not found
+    1 = correct password
+    2 = wrong password
+    */
+    FILE *read;
+    read = fopen("./.users/Login.txt", "r");
+    int target = -1, users_count;
+    fscanf(read, "%d\n", &users_count);
+    char usernames[users_count][MAX_NAMES], passwords[users_count][MAX_NAMES], emails[users_count][MAX_NAMES];
+    for (int i = 0; i < users_count; i++)
+    {
+        fscanf(read, "%s %s %s\n", usernames[i], passwords[i], emails[i]);
+        if (strcmp(username, usernames) == 0)
+        {
+            target = i;
+            break;
+        }
+    }
+    fclose(read);
+
+    if (target == -1)
+        return 0;
+    else
+    {
+        char encrypted_pass[MAX_NAMES];
+        strcpy(encrypted_pass, encrypt(password, username));
+        if (strcmp(encrypted_pass, passwords[target]) == 0)
+            return 1;
+        else
+            return 2;
+    }
+}
+
 void log_in()
 {
     noecho();
@@ -449,10 +543,11 @@ void log_in()
 
     int users_count, ch, p = 0, big = 0;
 
-    char players[3][MAX_NAMES], username[MAX_NAMES], password[MAX_NAMES], SHOWpassword[MAX_NAMES];
+    char players[3][MAX_NAMES], username[MAX_NAMES], password[MAX_NAMES];
     strcpy(username, "\0");
     strcpy(password, "\0");
-    strcpy(SHOWpassword, "\0");
+    char *SHOWpassword = (char *)malloc(MAX_NAMES);
+    SHOWpassword[0] = '\0';
 
     FILE *read;
     read = fopen("./.users/Users.txt", "r");
@@ -581,19 +676,20 @@ void log_in()
         else if (p == 4)
         {
             curs_set(1);
-            move((scrY / 2) + 2, (scrX / 2) + 2 + strlen(SHOWpassword));
+            move((scrY / 2) + 2, (scrX / 2) + 2 + strlen(password));
             while (1)
             {
                 ch = getch();
-                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(SHOWpassword))
+                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password))
                 {
                     password[strlen(password) - 1] = '\0';
                     SHOWpassword[strlen(SHOWpassword) - 1] = '\0';
                 }
-                else if (ch >= '!' && ch <= '~')
+                else if (ch > 32 && ch < 127)
                 {
                     password[strlen(password)] = (char)ch;
                     SHOWpassword[strlen(SHOWpassword)] = '*';
+                    SHOWpassword[strlen(SHOWpassword)] = '\0';
                 }
                 else if (ch == KEY_DOWN || ch == KEY_UP || ch == '\n')
                     break;
@@ -613,13 +709,24 @@ void log_in()
             attron(COLOR_PAIR(1) | A_BLINK);
             mvprintw((scrY / 2) + 3, (scrX / 2) - 7, "forgot password");
             attroff(COLOR_PAIR(1) | A_BLINK);
-            ch = getch();
-            if (ch == '\n')
+            while (1)
             {
-                clear();
-                refresh();
-                // securityQ();
-                break;
+                ch = getch();
+
+                if (ch == '\n' && strlen(username))
+                {
+#pragma region show warning
+                }
+                else if (ch == '\n' && username_exist(username))
+                {
+                    clear();
+                    refresh();
+                    securityQ(username);
+                    free(SHOWpassword);
+                    break;
+                }
+                else if (ch == KEY_DOWN || ch == KEY_UP)
+                    break;
             }
         }
         else if (p == 6)
@@ -628,7 +735,25 @@ void log_in()
             attron(COLOR_PAIR(1) | A_BLINK);
             mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Log in");
             attroff(COLOR_PAIR(1) | A_BLINK);
-            getch();
+            while (1)
+            {
+                ch = getch();
+
+                if (ch == '\n' && strlen(username))
+                {
+#pragma region show warning
+                }
+                else if (ch == '\n' && username_exist(username))
+                {
+                    clear();
+                    refresh();
+                    search_login(username, password);
+                    free(SHOWpassword);
+                    break;
+                }
+                else if (ch == KEY_DOWN || ch == KEY_UP)
+                    break;
+            }
         }
 
         if (ch == KEY_UP)
@@ -920,6 +1045,10 @@ void add_New_User()
             if (ch == '\n')
             {
                 clear();
+                free(username);
+                free(password);
+                free(SHOWpassword);
+                free(email);
                 break;
             }
         }
