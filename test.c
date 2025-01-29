@@ -7,6 +7,53 @@
 #define MAX_LINE 1024
 
 /*
+#include <ncurses.h>
+
+int main()
+{
+    initscr();
+    noecho();
+    keypad(stdscr, TRUE);
+    mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+
+    // فعال‌سازی گزارش حرکت موس (در ترمینال‌هایی که پشتیبانی می‌کنند)
+    printf("\033[?1003h\n");
+
+    printw("Move the mouse or scroll. Press 'q' to exit.\n");
+    refresh();
+
+    while (1)
+    {
+        int ch = getch();
+        if (ch == KEY_MOUSE)
+        {
+            MEVENT event;
+            if (getmouse(&event) == OK)
+            {
+                if (event.bstate & BUTTON4_PRESSED)
+                    printw("Mouse Scroll Up at (%d, %d)\n", event.x, event.y);
+                else if (event.bstate & BUTTON5_PRESSED)
+                    printw("Mouse Scroll Down at (%d, %d)\n", event.x, event.y);
+                else if (event.bstate & REPORT_MOUSE_POSITION)
+                    printw("Mouse moved to (%d, %d)\n", event.x, event.y);
+            }
+        }
+        else if (ch == 'q')
+        {
+            break;
+        }
+        refresh();
+    }
+
+    // غیرفعال‌سازی گزارش حرکت موس
+    printf("\033[?1003l\n");
+
+    endwin();
+    return 0;
+}
+*/
+
+/*
 void add_New_User()
 {
     noecho();
@@ -460,8 +507,17 @@ char *decrypt(char buffer[1024], char key[512])
     return encMsg;
 }
 
+int sdfa()
+{
+    return 1;
+}
+
 int main()
 {
-
+    int moed;
+    if ((moed = sdfa()))
+    {
+        printf("%d\n", moed);
+    }
     return 0;
 }
