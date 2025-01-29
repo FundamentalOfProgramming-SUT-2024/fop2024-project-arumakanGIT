@@ -401,24 +401,56 @@ void addToLogin(char username[MAX_NAMES], char password[MAX_NAMES], char email[M
 void addToLeaderBoard(char username[MAX_NAMES])
 {
     FILE *r = fopen("./.users/LeaderBoard.txt", "r");
-    int users_count;
+    int users_count, target = -1;
     fscanf(r, "%d", &users_count);
     int big = 0, golds[users_count], score[users_count], games[users_count], ex[users_count];
     char names[users_count];
+
     for (int i = 0; i < users_count; i++)
     {
         fscanf(r, "%s %d %d %d %d\n", names[i], &golds[i], &score[i], &games[i], &ex[i]);
         if (strlen(names[i]) > big)
             big = strlen(names[i]);
+        if (strcmp(username, names[i]) == 0)
+            target = i;
     }
     fclose(r);
 
-    for (int i = 0; i < users_count; i++)
+    for (int i = 0; i < users_count - 1; i++)
+        for (int j = i + 1; j < users_count; j++)
+            if (golds[j] > golds[i])
+            {
+                char n[MAX_NAMES];
+                int t;
+                strcpy(n, names[j]);
+                strcpy(names[j], names[i]);
+                strcpy(names[i], n);
+
+                t = golds[j];
+                golds[i] = golds[j];
+                golds[i] = t;
+
+                t = score[j];
+                score[i] = score[j];
+                score[j] = t;
+
+                t = games[j];
+                games[i] = games[j];
+                games[j] = t;
+
+                t = ex[j];
+                ex[i] = ex[j];
+                ex[j] = ex[i];
+            }
+
+    if (target == -1)
     {
-        for (int j = i + 1; j < count; j++)
-        {
-            /* code */
-        }
+        FILE *w = fopen("./.users/LeaderBoard.txt", "w");
+        fprintf(w, "%d", users_count + 1);
+        for (int i = 0; i < users_count; i++)
+            fprintf(w, "%s %d %d %d %d\n", names[i], golds[i], score[i], games[i], ex[i]);
+        fprintf(w, "%s %d %d %d %d\n", username, 0, 0, 0, 0);
+        fclose(w);
     }
 }
 
