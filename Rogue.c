@@ -25,24 +25,34 @@
 // ψ
 // ░ ░ ░
 
+char *setare(char buffer[MAX_NAMES])
+{
+    char *setareh = (char *)malloc(MAX_NAMES);
+    memset(setareh, 0, sizeof(setareh));
+    for (int i = 0; i < strlen(buffer); i++)
+        setareh[i] = '*';
+    setareh[strlen(setareh)] = '\0';
+    return setareh;
+}
+
 int email_exist(char email[MAX_NAMES])
 {
     /*
     0 = not exist
     1 = exist
     */
-    FILE *read;
-    read = fopen("./.users/Login.txt", "r");
+    FILE *r;
+    r = fopen("./.users/Login.txt", "r");
     int users_count;
-    fscanf(read, "%d\n", &users_count);
+    fscanf(r, "%d\n", &users_count);
     for (int i = 0; i < users_count; i++)
     {
         char currentEmail[MAX_NAMES];
-        fscanf(read, "%*S %*S %s\n", currentEmail);
+        fscanf(r, "%*S %*S %s\n", currentEmail);
         if (strcmp(currentEmail, email) == 0)
             return 1;
     }
-    fclose(read);
+    fclose(r);
     return 0;
 }
 
@@ -52,18 +62,18 @@ int username_exist(char username[MAX_NAMES])
     0 = not exist
     1 = exist
     */
-    FILE *read;
-    read = fopen("./.users/Login.txt", "r");
+    FILE *r;
+    r = fopen("./.users/Login.txt", "r");
     int users_count;
-    fscanf(read, "%d\n", &users_count);
+    fscanf(r, "%d\n", &users_count);
     for (int i = 0; i < users_count; i++)
     {
         char currentUsername[MAX_NAMES];
-        fscanf(read, "%s %*S %*S\n", currentUsername);
+        fscanf(r, "%s %*S %*S\n", currentUsername);
         if (strcmp(currentUsername, username) == 0)
             return 1;
     }
-    fclose(read);
+    fclose(r);
     return 0;
 }
 
@@ -226,6 +236,7 @@ int checksum(char buffer[MAX_LINE])
 char *encrypt(char buffer[MAX_NAMES], char key[MAX_NAMES])
 {
     char *encMsg = (char *)malloc(strlen(buffer) * 2 + 50);
+    encMsg[0] = '\0';
     int key_len = strlen(key);
     int buffer_len = strlen(buffer);
     for (int i = 0; i < (buffer_len / key_len) + 1; i++)
@@ -245,7 +256,10 @@ char *encrypt(char buffer[MAX_NAMES], char key[MAX_NAMES])
                 a[0] = '0';
             }
             a[2] = '\0';
-            strcat(encMsg, a);
+            int str_len = strlen(encMsg);
+            encMsg[str_len] = a[0];
+            encMsg[str_len + 1] = a[1];
+            encMsg[str_len + 2] = '\0';
         }
     }
     char ccc[5];
@@ -254,8 +268,13 @@ char *encrypt(char buffer[MAX_NAMES], char key[MAX_NAMES])
         strcpy(ccc, "0000");
     else
         sprintf(ccc, "%04X", checksum(buffer));
-    strcat(encMsg, ccc);
-    encMsg[strlen(encMsg)] = '\0';
+
+    int str_len = strlen(encMsg);
+    encMsg[str_len] = ccc[0];
+    encMsg[str_len + 1] = ccc[1];
+    encMsg[str_len + 2] = ccc[2];
+    encMsg[str_len + 3] = ccc[3];
+    encMsg[str_len + 4] = '\0';
     toLowerCase(encMsg);
     return encMsg;
 }
@@ -360,254 +379,6 @@ void addToLogin(char username[MAX_NAMES], char password[MAX_NAMES], char email[M
     fprintf(write, "%s %s %s\n", username, encrypt(password, username), email);
 }
 
-void new_pass(char username[MAX_NAMES])
-{
-#pragma region new password
-    noecho();
-    keypad(stdscr, TRUE);
-    UseColor();
-    int scrX, scrY;
-    getmaxyx(stdscr, scrY, scrX);
-    mvprintw((scrY / 2) - 3, (scrX / 2) - 10, "Enter New Password : ");
-    int ch, p = 0;
-    char *password = (char *)malloc(MAX_NAMES);
-    password[0] = '\0';
-    while (1)
-    {
-        curs_set(0);
-        mvprintw((scrY / 2) + 1, (scrX / 2), "random password");
-        mvprintw((scrY / 2) + 3, (scrX / 2), "Done");
-        if (p == 0)
-        {
-            curs_set(1);
-            move((scrY / 2) - 1, (scrX / 2) + (strlen(password) / 2));
-            while (1)
-            {
-                ch = getch();
-                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password))
-                    password[strlen(password) - 1] = '\0';
-                else if (ch >= '!' && ch <= '~')
-                {
-                    password[strlen(password)] = (char)ch;
-                    password[strlen(password)] = '\0';
-                }
-                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
-                    break;
-
-                move((scrY / 2) - 1, 0);
-                clrtoeol();
-                attron(COLOR_PAIR(3));
-                mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", password);
-                attroff(COLOR_PAIR(3));
-                refresh();
-            }
-        }
-        else if (p == 1)
-        {
-            attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 1, (scrX / 2), "random password");
-            attroff(COLOR_PAIR(1) | A_BLINK);
-
-            while (1)
-            {
-                ch = getch();
-                if (ch == '\n')
-                {
-                    // char rp[MAX_NAMES];
-                    strcpy(password, random_pass());
-
-                    move((scrY / 2) - 1, 0);
-                    clrtoeol();
-                    attron(COLOR_PAIR(3));
-                    mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", password);
-                    attroff(COLOR_PAIR(3));
-                    refresh();
-                }
-                else if (ch == KEY_UP || ch == KEY_DOWN)
-                    break;
-            }
-        }
-        else if (p == 2)
-        {
-
-            attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 3, (scrX / 2), "Done");
-            attroff(COLOR_PAIR(1) | A_BLINK);
-
-            while (1)
-            {
-                ch = getch();
-                if (ch == '\n')
-                {
-#pragma region I am editing here
-                }
-                else if (ch == KEY_UP || ch == KEY_DOWN)
-                    break;
-            }
-        }
-
-        if (ch == keybound)
-            p = (p + 2) % 3;
-        else if (ch == KEY_DOWN || ch == '\n')
-            p = (p + 1) % 3;
-    }
-}
-
-void securityQ(char username[MAX_LINE])
-{
-    char path[MAX_LINE + 16];
-    sprintf(path, "./.users/%s/sq.txt", username);
-    noecho();
-    keypad(stdscr, TRUE);
-    UseColor();
-    int scrX, scrY;
-    getmaxyx(stdscr, scrY, scrX);
-    mvprintw((scrY / 2) - 2, (scrX / 2) - 10, "Security questions :");
-    mvprintw((scrY / 2) - 1, (scrX / 2) - 25, "What is the name of your pet?");
-    mvprintw((scrY / 2), (scrX / 2) - 25, "What is the name of your best friend?");
-    mvprintw((scrY / 2) + 1, (scrX / 2) - 25, "What was the name of your school?");
-    mvprintw((scrY / 2) + 2, (scrX / 2) - 25, "What is your favorite movie?");
-    mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
-    int ch;
-    int p = 0;
-    char pet[MAX_NAMES] = "", bf[MAX_NAMES] = "", school[MAX_NAMES] = "", movie[MAX_NAMES] = "";
-    while (1)
-    {
-        mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
-        curs_set(1);
-        if (p == 0)
-        {
-            move((scrY / 2) - 1, (scrX / 2) + 16 + strlen(pet));
-            while (1)
-            {
-                ch = getch();
-                if (ch >= '!' && ch <= '~')
-                    pet[strlen(pet)] = (char)ch;
-                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
-                    pet[strlen(pet) - 1] = '\0';
-                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
-                    break;
-
-                move((scrY / 2) - 1, (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2) - 1, (scrX / 2) + 16, "%s", pet);
-                refresh();
-            }
-        }
-        else if (p == 1)
-        {
-            move((scrY / 2), (scrX / 2) + 16 + strlen(bf));
-            while (1)
-            {
-                ch = getch();
-                if (ch >= '!' && ch <= '~')
-                    bf[strlen(bf)] = (char)ch;
-                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
-                    bf[strlen(bf) - 1] = '\0';
-                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
-                    break;
-
-                move((scrY / 2), (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2), (scrX / 2) + 16, "%s", bf);
-                refresh();
-            }
-        }
-        else if (p == 2)
-        {
-            move((scrY / 2) + 1, (scrX / 2) + 16 + strlen(school));
-            while (1)
-            {
-                ch = getch();
-                if (ch >= '!' && ch <= '~')
-                    school[strlen(school)] = (char)ch;
-                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
-                    school[strlen(school) - 1] = '\0';
-                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
-                    break;
-
-                move((scrY / 2) + 1, (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2) + 1, (scrX / 2) + 16, "%s", school);
-                refresh();
-            }
-        }
-        else if (p == 3)
-        {
-            move((scrY / 2) + 2, (scrX / 2) + 16 + strlen(movie));
-            while (1)
-            {
-                ch = getch();
-                if (ch >= '!' && ch <= '~')
-                    movie[strlen(movie)] = (char)ch;
-                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
-                    movie[strlen(movie) - 1] = '\0';
-                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
-                    break;
-
-                move((scrY / 2) + 2, (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2) + 2, (scrX / 2) + 16, "%s", movie);
-                refresh();
-            }
-        }
-        else if (p == 4)
-        {
-            curs_set(0);
-            attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
-            attroff(COLOR_PAIR(1) | A_BLINK);
-            ch = getch();
-            if (ch == '\n' && strlen(pet) && strlen(bf) && strlen(movie) && strlen(school))
-            {
-                FILE *read;
-                read = fopen(path, "r");
-                if (!read)
-                {
-                    fclose(read);
-                    FILE *write;
-                    write = fopen(path, "w");
-                    fprintf(write, "%s\n%s\n%s\n%s\n", pet, bf, school, movie);
-                    clear();
-                    refresh();
-                    break;
-                }
-                else
-                {
-                    char sq[4][MAX_NAMES];
-                    for (int i = 0; i < 4; i++)
-                        fscanf(read, "%s\n", sq[i]);
-                    if (strcmp(sq[0], pet) == 0 && strcmp(bf, sq[1]) == 0 && strcmp(school, sq[2]) == 0 && strcmp(movie, sq[3]) == 0)
-                    {
-                        clear();
-                        refresh();
-#pragma region add new pass
-                        // new_pass();
-                        break;
-                    }
-                    else
-                    {
-#pragma region show warning
-                        /*
-                        wrong security answer
-                        */
-                    }
-                }
-            }
-            else
-                mvprintw((scrY / 2) + 6, (scrX / 2) - 16, "Please answer all the questions.");
-        }
-
-        if (ch == KEY_UP)
-            p = (p + 4) % 5;
-        else if (ch == KEY_DOWN || ch == '\n')
-            p = (p + 6) % 5;
-    }
-
-    clear();
-    refresh();
-}
-
 int search_login(char username[MAX_NAMES], char password[MAX_NAMES])
 {
     /*
@@ -615,6 +386,24 @@ int search_login(char username[MAX_NAMES], char password[MAX_NAMES])
     1 = correct password
     2 = wrong password
     */
+    if (checkMail(username))
+    {
+        FILE *file = fopen("./.users/Login.txt", "r");
+        int user;
+        fscanf(file, "%d\n", &user);
+        for (int i = 0; i < user; i++)
+        {
+            char un[MAX_NAMES], email[MAX_NAMES];
+            fscanf(file, "%s %*S %s", un, email);
+            if (strcmp(email, username) == 0)
+            {
+                strcpy(username, un);
+                break;
+            }
+        }
+        fclose(file);
+    }
+
     FILE *read;
     read = fopen("./.users/Login.txt", "r");
     int target = -1, users_count;
@@ -623,7 +412,7 @@ int search_login(char username[MAX_NAMES], char password[MAX_NAMES])
     for (int i = 0; i < users_count; i++)
     {
         fscanf(read, "%s %s %s\n", usernames[i], passwords[i], emails[i]);
-        if (strcmp(username, usernames) == 0)
+        if (strcmp(username, usernames[i]) == 0)
         {
             target = i;
             break;
@@ -644,6 +433,353 @@ int search_login(char username[MAX_NAMES], char password[MAX_NAMES])
     }
 }
 
+void new_pass(char username[MAX_NAMES])
+{
+    noecho();
+    keypad(stdscr, TRUE);
+    UseColor();
+    int scrX, scrY;
+    getmaxyx(stdscr, scrY, scrX);
+    mvprintw((scrY / 2) - 3, (scrX / 2) - 10, "Enter New Password : ");
+    int ch, p = 0;
+    char password[MAX_NAMES];
+    memset(password, 0, sizeof(password));
+    password[0] = '\0';
+    while (1)
+    {
+        curs_set(0);
+        mvprintw((scrY / 2) + 1, (scrX / 2) - 8, "random password");
+        mvprintw((scrY / 2) + 3, (scrX / 2) - 2, "Done");
+
+        // password
+        if (p == 0)
+        {
+            move((scrY / 2) + 5, 0);
+            clrtoeol();
+
+            curs_set(1);
+            move((scrY / 2) - 1, (scrX / 2) + (strlen(password) / 2));
+            while (1)
+            {
+                ch = getch();
+                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password))
+                    password[strlen(password) - 1] = '\0';
+                else if (ch >= '!' && ch <= '~')
+                {
+                    password[strlen(password)] = (char)ch;
+                    password[strlen(password)] = '\0';
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+
+                move((scrY / 2) - 1, 0);
+                clrtoeol();
+                attron(COLOR_PAIR(3));
+                mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", setare(password));
+                attroff(COLOR_PAIR(3));
+                refresh();
+            }
+        }
+
+        // random password
+        else if (p == 1)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 1, (scrX / 2) - 8, "random password");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+                    strcpy(password, random_pass());
+
+                    move((scrY / 2) - 1, 0);
+                    clrtoeol();
+                    attron(COLOR_PAIR(3));
+                    mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", password);
+                    attroff(COLOR_PAIR(3));
+                    refresh();
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        // done
+        else if (p == 2)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 3, (scrX / 2) - 2, "Done");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+                    if (search_login(username, password) == 1)
+                    {
+                        move((scrY / 2) + 5, 0);
+                        clrtoeol();
+                        mvprintw((scrY / 2) + 5, (scrX / 2) - 15, "The password is already taken.");
+                    }
+                    else if (strlen(password) >= 7)
+                    {
+                        FILE *read;
+                        read = fopen("./.users/Login.txt", "r");
+                        int users_count, target_index = -1;
+                        fscanf(read, "%d\n", &users_count);
+                        char names[users_count][MAX_NAMES], emails[users_count][MAX_NAMES], passwords[users_count][MAX_NAMES];
+                        for (int i = 0; i < users_count; i++)
+                        {
+                            fscanf(read, "%s %s %s\n", names[i], passwords[i], emails[i]);
+                            if (strcmp(names[i], username) == 0)
+                                target_index = i;
+                        }
+                        fclose(read);
+
+                        if (target_index != -1)
+                        {
+                            strcpy(passwords[target_index], encrypt(password, username));
+                            FILE *write;
+                            write = fopen("./.users/Login.txt", "w");
+                            fprintf(write, "%d\n", users_count);
+                            for (int i = 0; i < users_count; i++)
+                                fprintf(write, "%s %s %s\n", names[i], passwords[i], emails[i]);
+                            fclose(write);
+
+                            char path[MAX_LINE];
+                            sprintf(path, "./.users/%s/UserInfo.txt", username);
+                            FILE *read2;
+                            read2 = fopen(path, "r");
+                            char data[3][MAX_NAMES];
+                            for (int i = 0; i < 3; i++)
+                                fscanf(read2, "%s\n", data[i]);
+                            fclose(read2);
+
+                            strcpy(data[1], encrypt(password, username));
+
+                            FILE *write2;
+                            write2 = fopen(path, "w");
+                            for (int i = 0; i < 3; i++)
+                                fprintf(write2, "%s\n", data[i]);
+                            fclose(write2);
+                        }
+                        clear();
+                        refresh();
+                        return;
+                    }
+                    else
+                    {
+                        move((scrY / 2) + 5, 0);
+                        clrtoeol();
+                        mvprintw((scrY / 2) + 5, (scrX / 2) - 25, "Please enter a password with at least 7 characters.");
+                    }
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        if (ch == KEY_UP)
+            p = (p + 2) % 3;
+        else if (ch == KEY_DOWN || ch == '\n')
+            p = (p + 1) % 3;
+    }
+}
+
+void securityQ(char username[MAX_NAMES])
+{
+    char path[MAX_LINE + 16];
+    if (checkMail(username))
+        sprintf(path, "./.users/%s/sq.txt", username);
+    else
+    {
+        FILE *file = fopen("./.users/Login.txt", "r");
+        int user;
+        fscanf(file, "%d\n", &user);
+        for (int i = 0; i < user; i++)
+        {
+            char un[MAX_NAMES], email[MAX_NAMES];
+            fscanf(file, "%s %*S %s", un, email);
+            if (strcmp(email, username) == 0)
+            {
+                strcpy(username, un);
+                break;
+            }
+        }
+        fclose(file);
+        sprintf(path, "./.users/%s/sq.txt", username);
+    }
+
+    noecho();
+    keypad(stdscr, TRUE);
+    UseColor();
+    int scrX, scrY;
+    getmaxyx(stdscr, scrY, scrX);
+    mvprintw((scrY / 2) - 2, (scrX / 2) - 10, "Security questions :");
+    mvprintw((scrY / 2) - 1, (scrX / 2) - 25, "What is the name of your pet?");
+    mvprintw((scrY / 2), (scrX / 2) - 25, "What is the name of your best friend?");
+    mvprintw((scrY / 2) + 1, (scrX / 2) - 25, "What was the name of your school?");
+    mvprintw((scrY / 2) + 2, (scrX / 2) - 25, "What is your favorite movie?");
+    mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
+
+    int ch, p = 0;
+    char pet[MAX_NAMES], bf[MAX_NAMES], school[MAX_NAMES], movie[MAX_NAMES];
+
+    memset(pet, 0, sizeof(pet));
+    memset(bf, 0, sizeof(bf));
+    memset(school, 0, sizeof(school));
+    memset(movie, 0, sizeof(movie));
+
+    while (1)
+    {
+        mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
+        curs_set(1);
+        // pet
+        if (p == 0)
+        {
+            move((scrY / 2) - 1, (scrX / 2) + 16 + strlen(pet));
+            while (1)
+            {
+                ch = getch();
+                if (ch >= '!' && ch <= '~')
+                    pet[strlen(pet)] = (char)ch;
+                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
+                    pet[strlen(pet) - 1] = '\0';
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+
+                move((scrY / 2) - 1, (scrX / 2) + 16);
+                clrtoeol();
+                mvprintw((scrY / 2) - 1, (scrX / 2) + 16, "%s", pet);
+                refresh();
+            }
+        }
+
+        // bf
+        else if (p == 1)
+        {
+            move((scrY / 2), (scrX / 2) + 16 + strlen(bf));
+            while (1)
+            {
+                ch = getch();
+                if (ch >= '!' && ch <= '~')
+                    bf[strlen(bf)] = (char)ch;
+                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
+                    bf[strlen(bf) - 1] = '\0';
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+
+                move((scrY / 2), (scrX / 2) + 16);
+                clrtoeol();
+                mvprintw((scrY / 2), (scrX / 2) + 16, "%s", bf);
+                refresh();
+            }
+        }
+
+        // school
+        else if (p == 2)
+        {
+            move((scrY / 2) + 1, (scrX / 2) + 16 + strlen(school));
+            while (1)
+            {
+                ch = getch();
+                if (ch >= '!' && ch <= '~')
+                    school[strlen(school)] = (char)ch;
+                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
+                    school[strlen(school) - 1] = '\0';
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+
+                move((scrY / 2) + 1, (scrX / 2) + 16);
+                clrtoeol();
+                mvprintw((scrY / 2) + 1, (scrX / 2) + 16, "%s", school);
+                refresh();
+            }
+        }
+
+        // movie
+        else if (p == 3)
+        {
+            move((scrY / 2) + 2, (scrX / 2) + 16 + strlen(movie));
+            while (1)
+            {
+                ch = getch();
+                if (ch >= '!' && ch <= '~')
+                    movie[strlen(movie)] = (char)ch;
+                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
+                    movie[strlen(movie) - 1] = '\0';
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+
+                move((scrY / 2) + 2, (scrX / 2) + 16);
+                clrtoeol();
+                mvprintw((scrY / 2) + 2, (scrX / 2) + 16, "%s", movie);
+                refresh();
+            }
+        }
+
+        // done
+        else if (p == 4)
+        {
+            curs_set(0);
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+                    if (access(path, F_OK) == 0)
+                    {
+                        char answers[4][MAX_NAMES];
+                        FILE *r = fopen(path, "r");
+                        for (int i = 0; i < 4; i++)
+                            fscanf(r, "%s\n", answers[i]);
+                        fclose(r);
+                        if (!strcmp(pet, answers[0]) && !strcmp(bf, answers[1]) && !strcmp(school, answers[2]) && !strcmp(movie, answers[3]))
+                        {
+                            clear();
+                            refresh();
+                            new_pass(username);
+                            return;
+                        }
+                        else
+                        {
+                            move((scrY / 2) + 6, 0);
+                            clrtoeol();
+                            mvprintw((scrY / 2) + 6, (scrX / 2) - 9, "Something is wrong");
+                        }
+                    }
+                    else
+                    {
+                        FILE *write = fopen(path, "w");
+                        fprintf(write, "%s\n%s\n%s\n%s", pet, bf, school, movie);
+                        fclose(write);
+                        clear();
+                        refresh();
+                        return;
+                    }
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        if (ch == KEY_UP)
+            p = (p + 4) % 5;
+        else if (ch == KEY_DOWN || ch == '\n')
+            p = (p + 6) % 5;
+    }
+
+    clear();
+    refresh();
+}
+
 void log_in()
 {
     noecho();
@@ -654,17 +790,23 @@ void log_in()
 
     int users_count, ch, p = 0, big = 0;
 
-    char players[3][MAX_NAMES], username[MAX_NAMES], password[MAX_NAMES];
+    char players[3][MAX_NAMES], username[MAX_NAMES], password[MAX_NAMES], SHOWpassword[MAX_NAMES];
+    memset(username, 0, sizeof(username));
+    memset(password, 0, sizeof(password));
+    memset(SHOWpassword, 0, sizeof(SHOWpassword));
     strcpy(username, "\0");
     strcpy(password, "\0");
-    char *SHOWpassword = (char *)malloc(MAX_NAMES);
     SHOWpassword[0] = '\0';
 
     FILE *read;
     read = fopen("./.users/Users.txt", "r");
     fscanf(read, "%d\n", &users_count);
+
     for (int i = 0; i < 3; i++)
+    {
+        memset(players[i], 0, sizeof(players[i]));
         strcpy(players[i], "\0");
+    }
 
     for (int i = 0; i < users_count && i < 3; i++)
     {
@@ -689,9 +831,10 @@ void log_in()
         mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
         mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
         mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
-        mvprintw((scrY / 2) + 3, (scrX / 2) - 7, "forgot password");
+        mvprintw((scrY / 2) + 4, (scrX / 2) - 7, "forgot password");
         mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Log in");
 
+        // player 1
         if (p == 0)
         {
             curs_set(0);
@@ -701,7 +844,7 @@ void log_in()
             while (1)
             {
                 ch = getch();
-                if (ch == '\n')
+                if (ch == '\n' && strlen(players[0]))
                 {
                     strcpy(username, players[0]);
                     move((scrY / 2) - 1, (scrX / 2) + 2);
@@ -715,6 +858,8 @@ void log_in()
                     break;
             }
         }
+
+        // player 2
         else if (p == 1)
         {
             curs_set(0);
@@ -724,7 +869,7 @@ void log_in()
             while (1)
             {
                 ch = getch();
-                if (ch == '\n')
+                if (ch == '\n' && strlen(players[1]))
                 {
                     strcpy(username, players[1]);
                     move((scrY / 2) - 1, (scrX / 2) + 2);
@@ -738,6 +883,8 @@ void log_in()
                     break;
             }
         }
+
+        // player 3
         else if (p == 2)
         {
             curs_set(0);
@@ -747,7 +894,7 @@ void log_in()
             while (1)
             {
                 ch = getch();
-                if (ch == '\n')
+                if (ch == '\n' && strlen(players[2]))
                 {
                     strcpy(username, players[2]);
                     move((scrY / 2) - 1, (scrX / 2) + 2);
@@ -761,6 +908,8 @@ void log_in()
                     break;
             }
         }
+
+        // username
         else if (p == 3)
         {
             curs_set(1);
@@ -784,6 +933,8 @@ void log_in()
             }
             curs_set(0);
         }
+
+        // password
         else if (p == 4)
         {
             curs_set(1);
@@ -814,30 +965,38 @@ void log_in()
             }
             curs_set(0);
         }
+
+        // forgot password
         else if (p == 5)
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 3, (scrX / 2) - 7, "forgot password");
+            mvprintw((scrY / 2) + 4, (scrX / 2) - 7, "forgot password");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
                 ch = getch();
 
-                if (ch == '\n' && (strlen(username) == 0 || username_exist(username) == 0))
-                    mvprintw((scrY / 2) + 7, (scrX / 2) - 23, "There is no user with this username or email");
-                else if (ch == '\n' && username_exist(username))
+                if (ch == '\n' && (strlen(username) == 0 || username_exist(username) == 0 || email_exist(username)))
+                {
+                    move((scrY / 2) + 9, 0);
+                    clrtoeol();
+                    mvprintw((scrY / 2) + 9, (scrX / 2) - 23, "There is no user with this username or email");
+                }
+                else if (ch == '\n' && (username_exist(username) || email_exist(username)))
                 {
                     clear();
                     refresh();
+                    flushinp();
                     securityQ(username);
-                    free(SHOWpassword);
-                    break;
+                    return;
                 }
                 else if (ch == KEY_DOWN || ch == KEY_UP)
                     break;
             }
         }
+
+        // login
         else if (p == 6)
         {
             curs_set(0);
@@ -848,9 +1007,13 @@ void log_in()
             {
                 ch = getch();
 
-                if (ch == '\n' && (strlen(username) == 0 || username_exist(username == 0)))
-                    mvprintw((scrY / 2) + 7, (scrX / 2) - 23, "There is no user with this username or email");
-                else if (ch == '\n' && username_exist(username))
+                if (ch == '\n' && (strlen(username) == 0 || (username_exist(username) == 0 && email_exist(username) == 0)))
+                {
+                    move((scrY / 2) + 9, 0);
+                    clrtoeol();
+                    mvprintw((scrY / 2) + 9, (scrX / 2) - 23, "There is no user with this username or email");
+                }
+                else if (ch == '\n' && (username_exist(username) || email_exist(username)))
                 {
                     int check = search_login(username, password);
                     if (check == 1)
@@ -858,12 +1021,14 @@ void log_in()
                         EditUserInfo(username);
                         clear();
                         refresh();
-                        free(SHOWpassword);
-                        break;
-#pragma region game start
+                        return;
                     }
                     else if (check == 2)
-                        mvprintw((scrY / 2) + 7, (scrX / 2) - 7, "Wrong password!");
+                    {
+                        move((scrY / 2) + 9, 0);
+                        clrtoeol();
+                        mvprintw((scrY / 2) + 9, (scrX / 2) - 7, "Wrong password!");
+                    }
                 }
                 else if (ch == KEY_DOWN || ch == KEY_UP)
                     break;
@@ -880,348 +1045,283 @@ void log_in()
 void add_New_User()
 {
     noecho();
+    cbreak();
     keypad(stdscr, TRUE);
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
-    char *username = (char *)malloc(MAX_NAMES), *password = (char *)malloc(MAX_NAMES), *SHOWpassword = (char *)malloc(MAX_NAMES), *email = (char *)malloc(MAX_NAMES);
-
-    int checkUserName = 0, checkPassword = 0, checkEmail = 0, choice = 0, create = 0;
-
-    username[0] = '\0';
-    password[0] = '\0';
-    email[0] = '\0';
-
     printAsciiArt('r', scrX, scrY, 28, 7);
+    mvprintw((scrY / 2) - 4, (scrX / 2) - 17, "Create your hero for an epic quest.");
+    mvprintw((scrY / 2) - 3, (scrX / 2) - 31, "--------------------------------------------------------------");
+    mvprintw((scrY / 2) - 2, (scrX / 2) - 31, "|                                                            |");
+    // mvprintw((scrY / 2) - 1, (scrX / 2) - 31, "|                                                            |");
+    mvprintw((scrY / 2), (scrX / 2) - 31, "|                                                            |");
+    // mvprintw((scrY / 2) + 1, (scrX / 2) - 31, "|                                                            |");
+    mvprintw((scrY / 2) + 2, (scrX / 2) - 31, "|                                                            |");
+    // mvprintw((scrY / 2) + 3, (scrX / 2) - 31, "|                                                            |");
+    mvprintw((scrY / 2) + 4, (scrX / 2) - 31, "|                                                            |");
+    mvprintw((scrY / 2) + 5, (scrX / 2) - 31, "--------------------------------------------------------------");
+    mvprintw((scrY / 2) - 1, (scrX / 2) - 25, "Enter your name, hero : ");
+    mvprintw((scrY / 2) + 1, (scrX / 2) - 25, "Enter your password : ");
+    mvprintw((scrY / 2) + 3, (scrX / 2) - 25, "Enter your email : ");
 
-    mvprintw((scrY / 2) - 4, scrX / 2 - 21, "---Create your hero for an epic quest.---");
-    mvprintw((scrY / 2) - 1, scrX / 2 - 11, "Enter your name, hero:");
-    mvprintw((scrY / 2) + 2, scrX / 2 - 10, "Enter your password:");
-    mvprintw((scrY / 2) + 5, scrX / 2 - 9, "Enter your email:");
+    int ch, p = 0;
+    char username[MAX_NAMES], password[MAX_NAMES], email[MAX_NAMES], SHOWpassword[MAX_NAMES];
+    memset(username, 0, sizeof(username));
+    memset(password, 0, sizeof(password));
+    memset(email, 0, sizeof(email));
+    memset(SHOWpassword, 0, sizeof(SHOWpassword));
+    username[0] = '\0';
+    email[0] = '\0';
+    password[0] = '\0';
+    SHOWpassword[0] = '\0';
 
-    init_pair(1, COLOR_BLACK, COLOR_WHITE);
-
-    int ch;
     while (1)
     {
-        curs_set(1);
+        mvprintw((scrY / 2) + 7, (scrX / 2) - 8, "Random Password");
+        mvprintw((scrY / 2) + 9, (scrX / 2) - 3, "Cancel");
+        mvprintw((scrY / 2) + 11, (scrX / 2) - 3, "Create");
 
-        mvprintw((scrY / 2) + 8, (scrX / 2) - 7, "Random Password");
-        mvprintw((scrY / 2) + 10, scrX / 2 - 3, "Cancel");
-        mvprintw((scrY / 2) + 12, scrX / 2 - 3, "Create");
-
-        if (choice == 0)
+        // User Name
+        if (p == 0)
         {
-            // USER NAME
-
-            attron(COLOR_PAIR(1));
-            move((scrY / 2), scrX / 2 + (strlen(username) / 2));
+            curs_set(1);
+            move((scrY / 2) - 1, (scrX / 2) + 3 + strlen(username));
             while (1)
             {
                 ch = getch();
-
-                move((scrY / 2) + 14, 0);
-                clrtoeol();
-                move((scrY / 2) + 15, 0);
-                clrtoeol();
-                move((scrY / 2) + 16, 0);
-                clrtoeol();
-                move((scrY / 2) + 17, 0);
-                clrtoeol();
-
-                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(username) != 0)
+                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(username))
                     username[strlen(username) - 1] = '\0';
-                else if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')
+                else if (ch >= '!' && ch <= '~')
                 {
-                    username[strlen(username)] = ch;
+                    username[strlen(username)] = (char)ch;
                     username[strlen(username)] = '\0';
                 }
-                else if (ch == '\n' || ch == KEY_UP || ch == KEY_DOWN)
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                 {
                     if (!strlen(username))
                     {
-                        checkUserName = 0;
-                        create = 0;
-                        attroff(COLOR_PAIR(1));
-                        mvprintw((scrY / 2) + 14, (scrX / 2) - 6, "Enter your Name");
-                        attron(COLOR_PAIR(1));
-                    }
-                    else
-                    {
-                        checkUserName = 1;
-                        if (checkPassword && checkUserName && checkEmail)
-                            create = 1;
+                        move((scrY / 2) + 13, 0);
+                        clrtoeol();
+                        mvprintw((scrY / 2) + 13, (scrX / 2) - 9, "Please enter a name.");
                     }
                     break;
                 }
-                else
-                {
-                    attroff(COLOR_PAIR(1));
-                    mvprintw((scrY / 2) + 14, (scrX / 2) - 17, "You can only use uppercase letters,");
-                    mvprintw((scrY / 2) + 15, (scrX / 2) - 16, "lowercase letters, and UnderLine.");
-                    attron(COLOR_PAIR(1));
-                }
 
-                if (checkPassword && checkUserName && checkEmail)
-                    create = 1;
-
-                move((scrY / 2), 0);
+                move((scrY / 2) - 1, (scrX / 2) + 3);
                 clrtoeol();
-                mvprintw((scrY / 2), (scrX / 2) - 1 - (strlen(username) / 2), "%s", username);
+                refresh();
+                attron(COLOR_PAIR(3));
+                mvprintw((scrY / 2) - 1, (scrX / 2) + 3, "%s", username);
+                attroff(COLOR_PAIR(3));
                 refresh();
             }
-
-            attroff(COLOR_PAIR(1));
+            curs_set(0);
         }
-        else if (choice == 1)
+
+        // Password
+        else if (p == 1)
         {
-
-            // PASSWORD
-
-            attron(COLOR_PAIR(1));
-            move((scrY / 2) + 3, scrX / 2 + (strlen(SHOWpassword) / 2));
+            curs_set(1);
+            move((scrY / 2) + 1, (scrX / 2) + 3 + strlen(password));
             while (1)
             {
                 ch = getch();
-
-                move((scrY / 2) + 14, 0);
-                clrtoeol();
-                move((scrY / 2) + 15, 0);
-                clrtoeol();
-                move((scrY / 2) + 16, 0);
-                clrtoeol();
-                move((scrY / 2) + 17, 0);
-                clrtoeol();
-
-                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password) != 0)
+                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password))
                 {
                     password[strlen(password) - 1] = '\0';
                     SHOWpassword[strlen(SHOWpassword) - 1] = '\0';
                 }
                 else if (ch >= '!' && ch <= '~')
                 {
-                    password[strlen(password)] = ch;
+                    password[strlen(password)] = (char)ch;
                     password[strlen(password)] = '\0';
-                    SHOWpassword[strlen(SHOWpassword)] = '*';
-                    SHOWpassword[strlen(SHOWpassword)] = '\0';
                 }
-                else if (ch == '\n' || ch == KEY_UP || ch == KEY_DOWN)
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                 {
-                    if (strlen(password) >= 7)
+                    if (strlen(password) < 7)
                     {
-                        checkPassword = 1;
-                        if (checkPassword && checkUserName && checkEmail)
-                            create = 1;
-                    }
-                    else
-                    {
-                        checkPassword = 0;
-                        create = 0;
-                        attroff(COLOR_PAIR(1));
-                        mvprintw((scrY / 2) + 14, (scrX / 2) - 24, "The password is too short. (Minimum 7 characters)");
-                        attron(COLOR_PAIR(1));
+                        move((scrY / 2) + 13, 0);
+                        clrtoeol();
+                        mvprintw((scrY / 2) + 13, (scrX / 2) - 22, "Minimum length for password is 7 characters.");
                     }
                     break;
                 }
-                else
-                {
-                    attroff(COLOR_PAIR(1));
-                    mvprintw((scrY / 2) + 10, (scrX / 2) - 6, "Invalid input");
-                    attron(COLOR_PAIR(1));
-                }
 
-                if (checkPassword && checkUserName && checkEmail)
-                    create = 1;
-
-                move((scrY / 2) + 3, 0);
+                move((scrY / 2) + 1, (scrX / 2) + 3);
                 clrtoeol();
-                mvprintw((scrY / 2) + 3, (scrX / 2) - 1 - (strlen(SHOWpassword) / 2), "%s", SHOWpassword);
+                refresh();
+                attron(COLOR_PAIR(3));
+                mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", setare(password));
+                attroff(COLOR_PAIR(3));
                 refresh();
             }
-            attroff(COLOR_PAIR(1));
+            curs_set(0);
         }
-        else if (choice == 2)
+
+        // Email
+        else if (p == 2)
         {
-
-            // EMAIL
-
-            attron(COLOR_PAIR(1));
-            move((scrY / 2) + 6, scrX / 2 + (strlen(email) / 2));
+            curs_set(1);
+            move((scrY / 2) + 3, (scrX / 2) + 3 + strlen(email));
             while (1)
             {
                 ch = getch();
-
-                move((scrY / 2) + 14, 0);
-                clrtoeol();
-                move((scrY / 2) + 15, 0);
-                clrtoeol();
-                move((scrY / 2) + 16, 0);
-                clrtoeol();
-                move((scrY / 2) + 17, 0);
-                clrtoeol();
-
-                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(email) != 0)
+                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(email))
                     email[strlen(email) - 1] = '\0';
-                else if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_' || ch == '@' || ch == '.' || ch == '!' || ch == '#' || ch == '$' || ch == '%' || ch == '&' || ch == '*' || ch == '+' || ch == '-' || ch == '\'' || ch == '=' || ch == '?' || ch == '^' || ch == '`' || ch == '{' || ch == '}' || ch == '|')
+                else if (ch >= '!' && ch <= '~')
                 {
-                    email[strlen(email)] = ch;
+                    email[strlen(email)] = (char)ch;
                     email[strlen(email)] = '\0';
                 }
-                else if (ch == '\n' || ch == KEY_UP || ch == KEY_DOWN)
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                 {
-                    if (checkMail(email))
+                    if (!checkMail(email))
                     {
-                        checkEmail = 1;
-                        if (checkPassword && checkUserName && checkEmail)
-                            create = 1;
-                    }
-                    else
-                    {
-                        checkEmail = 0;
-                        create = 0;
-                        attroff(COLOR_PAIR(1));
-                        mvprintw((scrY / 2) + 14, (scrX / 2) - 17, "The email you entered is incorrect.");
-                        attron(COLOR_PAIR(1));
+                        move((scrY / 2) + 13, 0);
+                        clrtoeol();
+                        mvprintw((scrY / 2) + 13, (scrX / 2) - 9, "Invalid email Format.");
                     }
                     break;
                 }
-                else
-                {
-                    attroff(COLOR_PAIR(1));
-                    mvprintw((scrY / 2) + 14, (scrX / 2) - 14, "Email can only contain numbers,");
-                    mvprintw((scrY / 2) + 15, (scrX / 2) - 14, "uppercase and lowercase letters,");
-                    mvprintw((scrY / 2) + 16, (scrX / 2) - 12, "and the following characters:");
-                    mvprintw((scrY / 2) + 17, (scrX / 2) - 17, " ـ ! # $ %% & \' * + - = ? ^ ` { } | ");
-                    attron(COLOR_PAIR(1));
-                }
 
-                if (checkPassword && checkUserName && checkEmail)
-                    create = 1;
-
-                move((scrY / 2) + 6, 0);
+                move((scrY / 2) + 3, (scrX / 2) + 3);
                 clrtoeol();
-                mvprintw((scrY / 2) + 6, (scrX / 2) - 1 - (strlen(email) / 2), "%s", email);
+                refresh();
+                attron(COLOR_PAIR(3));
+                mvprintw((scrY / 2) + 3, (scrX / 2) + 3, "%s", email);
+                attroff(COLOR_PAIR(3));
                 refresh();
             }
-            attroff(COLOR_PAIR(1));
         }
-        else if (choice == 3)
+
+        // Random Password
+        else if (p == 3)
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 8, (scrX / 2) - 7, "Random Password");
+            mvprintw((scrY / 2) + 7, (scrX / 2) - 8, "Random Password");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n')
                 {
-                    move((scrY / 2) + 14, 0);
+                    strcpy(password, random_pass());
+                    move((scrY / 2) + 1, (scrX / 2) + 3);
                     clrtoeol();
-                    move((scrY / 2) + 15, 0);
-                    clrtoeol();
-                    move((scrY / 2) + 16, 0);
-                    clrtoeol();
-                    move((scrY / 2) + 17, 0);
-                    clrtoeol();
-                    char rp[MAX_NAMES];
-                    strcpy(rp, random_pass());
-                    mvprintw((scrY / 2) + 14, (scrX / 2) - 5, "%s", rp);
-
-                    strcpy(password, rp);
-                    strcpy(SHOWpassword, "\0");
-                    for (int i = 0; i < strlen(password); i++)
-                        SHOWpassword[i] = '*';
-                    SHOWpassword[strlen(SHOWpassword)] = '\0';
-
-                    move((scrY / 2) + 3, 0);
-                    clrtoeol();
-                    attron(COLOR_PAIR(1));
-                    mvprintw((scrY / 2) + 3, (scrX / 2) - 1 - (strlen(SHOWpassword) / 2), "%s", SHOWpassword);
-                    attroff(COLOR_PAIR(1));
                     refresh();
-
-                    checkPassword = 1;
-                    if (checkPassword && checkUserName && checkEmail)
-                        create = 1;
+                    attron(COLOR_PAIR(3));
+                    mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", password);
+                    attroff(COLOR_PAIR(3));
+                    refresh();
+                    curs_set(1);
                 }
                 else if (ch == KEY_DOWN || ch == KEY_UP)
                     break;
             }
         }
-        else if (choice == 4)
+
+        // Cancel
+        else if (p == 4)
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 10, scrX / 2 - 3, "Cancel");
+            mvprintw((scrY / 2) + 9, (scrX / 2) - 3, "Cancel");
             attroff(COLOR_PAIR(1) | A_BLINK);
-            ch = getch();
-            if (ch == '\n')
+            while (1)
             {
-                clear();
-                free(username);
-                free(password);
-                free(SHOWpassword);
-                free(email);
-                break;
-            }
-        }
-        else if (choice == 5)
-        {
-            curs_set(0);
-            attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 12, (scrX / 2) - 3, "Create");
-            attroff(COLOR_PAIR(1) | A_BLINK);
-            ch = getch();
-            if (ch == '\n')
-            {
-                char path[MAX_LINE];
-                snprintf(path, MAX_LINE, "./.users/%s", username);
-                DIR *dir = opendir(path);
-                if (email_exist(email))
+                ch = getch();
+                if (ch == '\n')
                 {
-                    mvprintw((scrY / 2) + 14, (scrX / 2) - 17, "This email has already been created.");
-                    ch = getch();
-                }
-                else if (!dir)
-                {
-                    mkdir(path, 0777);
-                    dir = opendir(path);
-                    FILE *user;
-                    char filePathUserInfo[MAX_LINE + 14];
-                    snprintf(filePathUserInfo, MAX_LINE + 14, "%s/UserInfo.txt", path);
-                    user = fopen(filePathUserInfo, "w");
-                    fprintf(user, "%s\n%s\n%s\n%s", username, password, encrypt(password, username), email);
-                    fclose(user);
-                    addToUserInfo(username);
-                    addToLogin(username, password, email);
                     clear();
                     refresh();
-                    securityQ(path);
+                    return;
+                }
+                else if (ch == KEY_DOWN || ch == KEY_UP)
                     break;
-                }
-                else
+            }
+        }
+
+        // Create
+        else if (p == 5)
+        {
+            curs_set(0);
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw((scrY / 2) + 11, (scrX / 2) - 3, "Create");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
                 {
-                    mvprintw((scrY / 2) + 14, (scrX / 2) - 17, "This name has already been created.");
-                    ch = getch();
+                    if (strlen(username) && (strlen(password) >= 7) && checkMail(email) && !email_exist(email) && !username_exist(username))
+                    {
+                        char path[MAX_LINE];
+                        sprintf(path, "./.users/%s", username);
+                        mkdir(path, 0777);
+
+                        char file_path[MAX_LINE];
+                        sprintf(file_path, "./.users/%s/UserInfo.txt", username);
+                        FILE *write;
+                        write = fopen(file_path, "w");
+                        fprintf(write, "%s\n%s\n%s", username, encrypt(password, username), email);
+                        fclose(write);
+
+                        addToLogin(username, password, email);
+                        addToUserInfo(username);
+
+                        clear();
+                        refresh();
+                        flushinp();
+                        securityQ(username);
+
+                        return;
+                    }
+                    else
+                    {
+                        if (email_exist(email))
+                        {
+                            move((scrY / 2) + 13, 0);
+                            clrtoeol();
+                            mvprintw((scrY / 2) + 13, (scrX / 2) - 19, "The email is already registered.");
+                        }
+                        else if (username_exist(username))
+                        {
+                            move((scrY / 2) + 13, 0);
+                            clrtoeol();
+                            mvprintw((scrY / 2) + 13, (scrX / 2) - 20, "The username is already registered.");
+                        }
+                        else if (strlen(username))
+                        {
+                            move((scrY / 2) + 13, 0);
+                            clrtoeol();
+                            mvprintw((scrY / 2) + 13, (scrX / 2) - 10, "Please enter a name.");
+                        }
+                        else if (strlen(password) < 7)
+                        {
+                            move((scrY / 2) + 13, 0);
+                            clrtoeol();
+                            mvprintw((scrY / 2) + 13, (scrX / 2) - 24, "Please enter a password with at least 7 characters.");
+                        }
+                        else if (checkMail(email))
+                        {
+                            move((scrY / 2) + 13, 0);
+                            clrtoeol();
+                            mvprintw((scrY / 2) + 13, (scrX / 2) - 13, "Please enter a valid email.");
+                        }
+                        break;
+                    }
                 }
+                else if (ch == KEY_DOWN || ch == KEY_UP)
+                    break;
             }
         }
 
         if (ch == KEY_UP)
-        {
-            if (create)
-                choice = (choice + 5) % 6;
-            else
-                choice = (choice + 4) % 5;
-        }
+            p = (p + 5) % 6;
         else if (ch == KEY_DOWN || ch == '\n')
-        {
-            if (create)
-                choice = (choice + 1) % 6;
-            else
-                choice = (choice + 1) % 5;
-        }
+            p = (p + 1) % 6;
     }
 }
 
@@ -1376,6 +1476,7 @@ void EnterPage()
     attroff(A_BLINK);
     refresh();
     getch();
+    flushinp();
     clear();
 }
 
@@ -1384,12 +1485,12 @@ int main()
     srand(time(NULL));
     initscr();
     // raw();
+    cbreak();
     noecho();
     curs_set(0);
 
     EnterPage();
     RegisterMenu();
-    // securityQ();
 
     endwin();
     return 0;
