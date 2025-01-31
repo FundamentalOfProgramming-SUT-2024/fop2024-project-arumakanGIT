@@ -1,3 +1,4 @@
+#include <sys/ioctl.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,9 +9,13 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <SDL2/SDL_mixer.h>
+#include <locale.h>
+#include <SDL2/SDL.h>
 
 #define MAX_NAMES 256
 #define MAX_LINE 1024
+#define LIMIT_INPUT 25
 
 // ʘ
 // ۩
@@ -24,6 +29,15 @@
 // ᛟ
 // ψ
 // ░ ░ ░
+
+/*
+ */
+
+typedef struct Node
+{
+    int x;
+    int y;
+} Node;
 
 void remove_dir(const char *path)
 {
@@ -211,18 +225,65 @@ void printAsciiArt(char mode, int scrX, int scrY, int x, int y)
 
 void UseColor()
 {
-    // start color
-    // set black color
-    // back ground = black & foreground = white
-    // code 1 = inverse background
-    // code 3 = back text -> red
+    noecho();
+    keypad(stdscr, TRUE);
+    curs_set(0);
+    cbreak();
     start_color();
     if (has_colors() && can_change_color())
+    {
         init_color(COLOR_BLACK, 0, 0, 0);
+        init_color(8, 128, 128, 128);
+
+        init_color(9, 1000, 843, 0);
+        init_color(10, 750, 750, 750);
+        init_color(11, 804, 498, 196);
+        init_color(12, 381, 201, 30);
+        init_color(13, 347, 112, 419);
+        init_color(14, 0, 387, 0);
+    }
+
+    // inverse
+    init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    // default
     init_pair(2, COLOR_WHITE, COLOR_BLACK);
     bkgd(COLOR_PAIR(2));
-    init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    // red inverse
     init_pair(3, COLOR_WHITE, COLOR_RED);
+    // red
+    init_pair(4, COLOR_RED, COLOR_BLACK);
+    // gray
+    init_pair(8, 8, COLOR_BLACK);
+    // gold
+    init_pair(9, 9, COLOR_BLACK);
+    // silver
+    init_pair(10, 10, COLOR_BLACK);
+    // bronze
+    init_pair(11, 11, COLOR_BLACK);
+    // cyan inverse
+    init_pair(12, COLOR_BLACK, COLOR_CYAN);
+    // cyan
+    init_pair(13, COLOR_CYAN, COLOR_BLACK);
+
+    // gold revers
+    init_pair(5, COLOR_BLACK, 9);
+    // medium Green
+    init_pair(6, 14, COLOR_BLACK);
+    // medium Green inverse
+    init_pair(7, COLOR_BLACK, COLOR_GREEN);
+
+    // Red
+    init_pair(20, COLOR_RED, COLOR_BLACK);
+    // Green
+    init_pair(21, COLOR_GREEN, COLOR_BLACK);
+    // Blue
+    init_pair(22, COLOR_BLUE, COLOR_BLACK);
+    // Yellow
+    init_pair(23, COLOR_YELLOW, COLOR_BLACK);
+    // Brown
+    init_pair(24, 12, COLOR_BLACK);
+    // purple
+    init_pair(25, 13, COLOR_BLACK);
 }
 
 int checkMail(char *email)
@@ -346,6 +407,28 @@ char *decrypt(char buffer[1024], char key[512])
     return encMsg;
 }
 
+void printBoard(int Ypadding, int Xpadding, int h, int w)
+{
+    int scrX, scrY;
+    getmaxyx(stdscr, scrY, scrX);
+    int x = scrX / 2, y = scrY / 2;
+
+    char line[w + 1], row[w + 1];
+    line[w] = '\0';
+    row[w] = '\0';
+    memset(line, '-', w);
+    memset(row, ' ', w);
+
+    row[0] = '|';
+    row[w - 1] = '|';
+
+    mvprintw(y - (h / 2) + Ypadding, x - (w / 2) + Xpadding, "%s", line);
+    mvprintw(y - (h / 2) + Ypadding + h - 1, x - (w / 2) + Xpadding, "%s", line);
+    int yy = y - (h / 2) + Ypadding + 1;
+    for (int i = 0; i < h - 2; i++)
+        mvprintw(yy + i, x - (w / 2) + Xpadding, "%s", row);
+}
+
 void EditUserInfo(char username[MAX_NAMES])
 {
     FILE *read;
@@ -404,7 +487,7 @@ void addToLeaderBoard(char username[MAX_NAMES])
     int users_count, target = -1;
     fscanf(r, "%d", &users_count);
     int big = 0, golds[users_count], score[users_count], games[users_count], ex[users_count];
-    char names[users_count];
+    char names[users_count][MAX_NAMES];
 
     for (int i = 0; i < users_count; i++)
     {
@@ -446,7 +529,7 @@ void addToLeaderBoard(char username[MAX_NAMES])
     if (target == -1)
     {
         FILE *w = fopen("./.users/LeaderBoard.txt", "w");
-        fprintf(w, "%d", users_count + 1);
+        fprintf(w, "%d\n", users_count + 1);
         for (int i = 0; i < users_count; i++)
             fprintf(w, "%s %d %d %d %d\n", names[i], golds[i], score[i], games[i], ex[i]);
         fprintf(w, "%s %d %d %d %d\n", username, 0, 0, 0, 0);
@@ -510,8 +593,6 @@ int search_login(char username[MAX_NAMES], char password[MAX_NAMES])
 
 void new_pass(char username[MAX_NAMES])
 {
-    noecho();
-    keypad(stdscr, TRUE);
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
@@ -540,7 +621,7 @@ void new_pass(char username[MAX_NAMES])
                 ch = getch();
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password))
                     password[strlen(password) - 1] = '\0';
-                else if (ch >= '!' && ch <= '~')
+                else if (ch >= '!' && ch <= '~' && strlen(password) < LIMIT_INPUT)
                 {
                     password[strlen(password)] = (char)ch;
                     password[strlen(password)] = '\0';
@@ -714,8 +795,6 @@ void securityQ(char username[MAX_NAMES])
         sprintf(path, "./.users/%s/sq.txt", username);
     }
 
-    noecho();
-    keypad(stdscr, TRUE);
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
@@ -746,7 +825,7 @@ void securityQ(char username[MAX_NAMES])
             while (1)
             {
                 ch = getch();
-                if (ch >= '!' && ch <= '~')
+                if (ch >= '!' && ch <= '~' && strlen(pet) < LIMIT_INPUT)
                     pet[strlen(pet)] = (char)ch;
                 else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
                     pet[strlen(pet) - 1] = '\0';
@@ -767,7 +846,7 @@ void securityQ(char username[MAX_NAMES])
             while (1)
             {
                 ch = getch();
-                if (ch >= '!' && ch <= '~')
+                if (ch >= '!' && ch <= '~' && strlen(bf) < LIMIT_INPUT)
                     bf[strlen(bf)] = (char)ch;
                 else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
                     bf[strlen(bf) - 1] = '\0';
@@ -788,7 +867,7 @@ void securityQ(char username[MAX_NAMES])
             while (1)
             {
                 ch = getch();
-                if (ch >= '!' && ch <= '~')
+                if (ch >= '!' && ch <= '~' && strlen(school) < LIMIT_INPUT)
                     school[strlen(school)] = (char)ch;
                 else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
                     school[strlen(school) - 1] = '\0';
@@ -809,7 +888,7 @@ void securityQ(char username[MAX_NAMES])
             while (1)
             {
                 ch = getch();
-                if (ch >= '!' && ch <= '~')
+                if (ch >= '!' && ch <= '~' && strlen(movie) < LIMIT_INPUT)
                     movie[strlen(movie)] = (char)ch;
                 else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
                     movie[strlen(movie) - 1] = '\0';
@@ -921,8 +1000,6 @@ void securityQ(char username[MAX_NAMES])
 
 int log_in()
 {
-    noecho();
-    keypad(stdscr, TRUE);
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
@@ -955,44 +1032,53 @@ int log_in()
     }
     fclose(read);
 
-    mvprintw((scrY / 2) - 12, (scrX / 2) - 17, "---------- Last Players: ----------");
-    mvprintw((scrY / 2) - 11, (scrX / 2) - 17, "|                                 |");
-    mvprintw((scrY / 2) - 10, (scrX / 2) - 17, "|                                 |");
-    mvprintw((scrY / 2) - 9, (scrX / 2) - 17, "|                                 |");
-    mvprintw((scrY / 2) - 8, (scrX / 2) - 17, "|                                 |");
-    mvprintw((scrY / 2) - 7, (scrX / 2) - 17, "|                                 |");
-    mvprintw((scrY / 2) - 6, (scrX / 2) - 17, "-----------------------------------");
-    mvprintw((scrY / 2) - 3, (scrX / 2) - 14, "Email or Name : ");
-    mvprintw((scrY / 2), (scrX / 2) - 14, "Password : ");
+    attron(COLOR_PAIR(9) | A_BOLD);
+    mvprintw((scrY / 2) - 12, (scrX / 2) - 7, "Last Players :");
+    attroff(COLOR_PAIR(9) | A_BOLD);
+    attron(COLOR_PAIR(8));
+    printBoard(-7, 0, 7, 36);
+    attroff(COLOR_PAIR(8));
+    attron(COLOR_PAIR(13) | A_BOLD);
+    mvprintw((scrY / 2) - 1, (scrX / 2) - 14, "Email or Name : ");
+    mvprintw((scrY / 2) + 1, (scrX / 2) - 14, "Password : ");
+    attroff(COLOR_PAIR(13) | A_BOLD);
 
     while (1)
     {
-        mvprintw((scrY / 2) - 10, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
-        mvprintw((scrY / 2) - 9, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
-        mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
-        mvprintw((scrY / 2) + 2, (scrX / 2) - 7, "forgot password");
-        mvprintw((scrY / 2) + 5, (scrX / 2) - 3, "Log in");
-        mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Cancel");
+        attron(COLOR_PAIR(21));
+        mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
+        mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
+        mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
+        attroff(COLOR_PAIR(21));
+
+        mvprintw((scrY / 2) + 3, (scrX / 2) - 7, "forgot password");
+        mvprintw((scrY / 2) + 6, (scrX / 2) - 3, "Log in");
+        mvprintw((scrY / 2) + 8, (scrX / 2) - 3, "Cancel");
 
         // player 1
         if (p == 0)
         {
             curs_set(0);
-            attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) - 10, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(7) | A_BLINK);
+            mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
+            attroff(COLOR_PAIR(7) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n' && strlen(players[0]))
                 {
                     strcpy(username, players[0]);
-                    move((scrY / 2) - 3, (scrX / 2) + 2);
+                    move((scrY / 2) - 1, (scrX / 2) + 2);
                     clrtoeol();
                     attron(COLOR_PAIR(3));
-                    mvprintw((scrY / 2) - 3, (scrX / 2) + 2, "%s", username);
+                    mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                     attroff(COLOR_PAIR(3));
                     refresh();
+                    mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
+                    move((scrY / 2) + 1, (scrX / 2) + 2 + strlen(password));
+                    p = 3;
+                    curs_set(1);
+                    break;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -1003,21 +1089,26 @@ int log_in()
         else if (p == 1)
         {
             curs_set(0);
-            attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) - 9, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(7) | A_BLINK);
+            mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
+            attroff(COLOR_PAIR(7) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n' && strlen(players[1]))
                 {
                     strcpy(username, players[1]);
-                    move((scrY / 2) - 3, (scrX / 2) + 2);
+                    move((scrY / 2) - 1, (scrX / 2) + 2);
                     clrtoeol();
                     attron(COLOR_PAIR(3));
-                    mvprintw((scrY / 2) - 3, (scrX / 2) + 2, "%s", username);
+                    mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                     attroff(COLOR_PAIR(3));
                     refresh();
+                    mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
+                    move((scrY / 2) + 1, (scrX / 2) + 2 + strlen(password));
+                    p = 3;
+                    curs_set(1);
+                    break;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -1028,21 +1119,26 @@ int log_in()
         else if (p == 2)
         {
             curs_set(0);
-            attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(7) | A_BLINK);
+            mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
+            attroff(COLOR_PAIR(7) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n' && strlen(players[2]))
                 {
                     strcpy(username, players[2]);
-                    move((scrY / 2) - 3, (scrX / 2) + 2);
+                    move((scrY / 2) - 1, (scrX / 2) + 2);
                     clrtoeol();
                     attron(COLOR_PAIR(3));
-                    mvprintw((scrY / 2) - 3, (scrX / 2) + 2, "%s", username);
+                    mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                     attroff(COLOR_PAIR(3));
                     refresh();
+                    mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
+                    move((scrY / 2) + 1, (scrX / 2) + 2 + strlen(password));
+                    p = 3;
+                    curs_set(1);
+                    break;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -1053,21 +1149,21 @@ int log_in()
         else if (p == 3)
         {
             curs_set(1);
-            move((scrY / 2) - 3, (scrX / 2) + 2 + strlen(username));
+            move((scrY / 2) - 1, (scrX / 2) + 2 + strlen(username));
             while (1)
             {
                 ch = getch();
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(username))
                     username[strlen(username) - 1] = '\0';
-                else if (ch >= '!' && ch <= '~')
+                else if (ch >= '!' && ch <= '~' && strlen(username) < LIMIT_INPUT)
                     username[strlen(username)] = (char)ch;
                 else if (ch == KEY_DOWN || ch == KEY_UP || ch == '\n')
                     break;
 
-                move((scrY / 2) - 3, (scrX / 2) + 2);
+                move((scrY / 2) - 1, (scrX / 2) + 2);
                 clrtoeol();
                 attron(COLOR_PAIR(3));
-                mvprintw((scrY / 2) - 3, (scrX / 2) + 2, "%s", username);
+                mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                 attroff(COLOR_PAIR(3));
                 refresh();
             }
@@ -1078,7 +1174,7 @@ int log_in()
         else if (p == 4)
         {
             curs_set(1);
-            move((scrY / 2), (scrX / 2) + 2 + strlen(password));
+            move((scrY / 2) + 1, (scrX / 2) + 2 + strlen(password));
             while (1)
             {
                 ch = getch();
@@ -1087,7 +1183,7 @@ int log_in()
                     password[strlen(password) - 1] = '\0';
                     SHOWpassword[strlen(SHOWpassword) - 1] = '\0';
                 }
-                else if (ch > 32 && ch < 127)
+                else if (ch > 32 && ch < 127 && strlen(username) < LIMIT_INPUT)
                 {
                     password[strlen(password)] = (char)ch;
                     SHOWpassword[strlen(SHOWpassword)] = '*';
@@ -1096,11 +1192,11 @@ int log_in()
                 else if (ch == KEY_DOWN || ch == KEY_UP || ch == '\n')
                     break;
 
-                move((scrY / 2), (scrX / 2) + 2);
+                move((scrY / 2) + 1, (scrX / 2) + 2);
                 clrtoeol();
-                attron(COLOR_PAIR(3));
-                mvprintw((scrY / 2), (scrX / 2) + 2, "%s", SHOWpassword);
-                attroff(COLOR_PAIR(3));
+                attron(COLOR_PAIR(4));
+                mvprintw((scrY / 2) + 1, (scrX / 2) + 2, "%s", SHOWpassword);
+                attroff(COLOR_PAIR(4));
                 refresh();
             }
             curs_set(0);
@@ -1111,7 +1207,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 2, (scrX / 2) - 7, "forgot password");
+            mvprintw((scrY / 2) + 3, (scrX / 2) - 7, "forgot password");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -1119,9 +1215,11 @@ int log_in()
 
                 if (ch == '\n' && (strlen(username) == 0 || username_exist(username) == 0 || email_exist(username)))
                 {
-                    move((scrY / 2) + 9, 0);
+                    move((scrY / 2) + 11, 0);
                     clrtoeol();
-                    mvprintw((scrY / 2) + 9, (scrX / 2) - 23, "There is no user with this username or email");
+                    attron(COLOR_PAIR(4));
+                    mvprintw((scrY / 2) + 10, (scrX / 2) - 23, "There is no user with this username or email");
+                    attron(COLOR_PAIR(3));
                 }
                 else if (ch == '\n' && (username_exist(username) || email_exist(username)))
                 {
@@ -1144,7 +1242,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 5, (scrX / 2) - 3, "Log in");
+            mvprintw((scrY / 2) + 6, (scrX / 2) - 3, "Log in");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -1152,9 +1250,11 @@ int log_in()
 
                 if (ch == '\n' && (strlen(username) == 0 || (username_exist(username) == 0 && email_exist(username) == 0)))
                 {
-                    move((scrY / 2) + 9, 0);
+                    move((scrY / 2) + 10, 0);
                     clrtoeol();
-                    mvprintw((scrY / 2) + 9, (scrX / 2) - 23, "There is no user with this username or email");
+                    attron(COLOR_PAIR(4));
+                    mvprintw((scrY / 2) + 10, (scrX / 2) - 23, "There is no user with this username or email");
+                    attroff(COLOR_PAIR(4));
                 }
                 else if (ch == '\n' && (username_exist(username) || email_exist(username)))
                 {
@@ -1168,9 +1268,11 @@ int log_in()
                     }
                     else if (check == 2)
                     {
-                        move((scrY / 2) + 9, 0);
+                        move((scrY / 2) + 10, 0);
                         clrtoeol();
-                        mvprintw((scrY / 2) + 9, (scrX / 2) - 7, "Wrong password!");
+                        attron(COLOR_PAIR(4));
+                        mvprintw((scrY / 2) + 10, (scrX / 2) - 7, "Wrong password!");
+                        attroff(COLOR_PAIR(4));
                     }
                 }
                 else if (ch == KEY_DOWN || ch == KEY_UP)
@@ -1183,7 +1285,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Cancel");
+            mvprintw((scrY / 2) + 8, (scrX / 2) - 3, "Cancel");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -1208,14 +1310,14 @@ int log_in()
 
 int add_New_User()
 {
-    noecho();
-    cbreak();
-    keypad(stdscr, TRUE);
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
     printAsciiArt('r', scrX, scrY, 28, 7);
+    attron(COLOR_PAIR(9) | A_BOLD);
     mvprintw((scrY / 2) - 4, (scrX / 2) - 17, "Create your hero for an epic quest.");
+    attroff(COLOR_PAIR(9) | A_BOLD);
+    attron(COLOR_PAIR(8));
     mvprintw((scrY / 2) - 3, (scrX / 2) - 31, "--------------------------------------------------------------");
     mvprintw((scrY / 2) - 2, (scrX / 2) - 31, "|                                                            |");
     // mvprintw((scrY / 2) - 1, (scrX / 2) - 31, "|                                                            |");
@@ -1225,9 +1327,12 @@ int add_New_User()
     // mvprintw((scrY / 2) + 3, (scrX / 2) - 31, "|                                                            |");
     mvprintw((scrY / 2) + 4, (scrX / 2) - 31, "|                                                            |");
     mvprintw((scrY / 2) + 5, (scrX / 2) - 31, "--------------------------------------------------------------");
+    attroff(COLOR_PAIR(8));
+    attron(COLOR_PAIR(13) | A_BOLD);
     mvprintw((scrY / 2) - 1, (scrX / 2) - 25, "Enter your name, hero : ");
     mvprintw((scrY / 2) + 1, (scrX / 2) - 25, "Enter your password : ");
     mvprintw((scrY / 2) + 3, (scrX / 2) - 25, "Enter your email : ");
+    attroff(COLOR_PAIR(13) | A_BOLD);
 
     int ch, p = 0;
     char username[MAX_NAMES], password[MAX_NAMES], email[MAX_NAMES], SHOWpassword[MAX_NAMES];
@@ -1256,7 +1361,7 @@ int add_New_User()
                 ch = getch();
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(username))
                     username[strlen(username) - 1] = '\0';
-                else if (ch >= '!' && ch < '~')
+                else if (ch >= '!' && ch < '~' && strlen(username) < LIMIT_INPUT)
                 {
                     username[strlen(username)] = (char)ch;
                     username[strlen(username)] = '\0';
@@ -1267,7 +1372,9 @@ int add_New_User()
                     {
                         move((scrY / 2) + 13, 0);
                         clrtoeol();
+                        attron(COLOR_PAIR(20));
                         mvprintw((scrY / 2) + 13, (scrX / 2) - 9, "Please enter a name.");
+                        attroff(COLOR_PAIR(20));
                     }
                     break;
                 }
@@ -1296,7 +1403,7 @@ int add_New_User()
                     password[strlen(password) - 1] = '\0';
                     SHOWpassword[strlen(SHOWpassword) - 1] = '\0';
                 }
-                else if (ch >= '!' && ch <= '~')
+                else if (ch >= '!' && ch <= '~' && strlen(password) < LIMIT_INPUT)
                 {
                     password[strlen(password)] = (char)ch;
                     password[strlen(password)] = '\0';
@@ -1307,7 +1414,9 @@ int add_New_User()
                     {
                         move((scrY / 2) + 13, 0);
                         clrtoeol();
+                        attron(COLOR_PAIR(20));
                         mvprintw((scrY / 2) + 13, (scrX / 2) - 22, "Minimum length for password is 7 characters.");
+                        attroff(COLOR_PAIR(20));
                     }
                     break;
                 }
@@ -1315,9 +1424,9 @@ int add_New_User()
                 move((scrY / 2) + 1, (scrX / 2) + 3);
                 clrtoeol();
                 refresh();
-                attron(COLOR_PAIR(3));
+                attron(COLOR_PAIR(4));
                 mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", setare(password));
-                attroff(COLOR_PAIR(3));
+                attroff(COLOR_PAIR(4));
                 refresh();
             }
             curs_set(0);
@@ -1333,7 +1442,7 @@ int add_New_User()
                 ch = getch();
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(email))
                     email[strlen(email) - 1] = '\0';
-                else if (ch >= '!' && ch <= '~')
+                else if (ch >= '!' && ch <= '~' && strlen(email) < LIMIT_INPUT)
                 {
                     email[strlen(email)] = (char)ch;
                     email[strlen(email)] = '\0';
@@ -1344,7 +1453,9 @@ int add_New_User()
                     {
                         move((scrY / 2) + 13, 0);
                         clrtoeol();
+                        attron(COLOR_PAIR(20));
                         mvprintw((scrY / 2) + 13, (scrX / 2) - 9, "Invalid email Format.");
+                        attroff(COLOR_PAIR(20));
                     }
                     break;
                 }
@@ -1432,6 +1543,12 @@ int add_New_User()
                         fprintf(write, "%s\n%s\n%s", username, encrypt(password, username), email);
                         fclose(write);
 
+                        char gs_path[MAX_LINE];
+                        sprintf(gs_path, "./.users/%s/GameSetting.txt", username);
+                        FILE *gs = fopen(gs_path, "w");
+                        fprintf(gs, "1\n0\n3\n3");
+                        fclose(gs);
+
                         addToLogin(username, password, email);
                         addToLeaderBoard(username);
 
@@ -1448,31 +1565,41 @@ int add_New_User()
                         {
                             move((scrY / 2) + 13, 0);
                             clrtoeol();
+                            attron(COLOR_PAIR(20));
                             mvprintw((scrY / 2) + 13, (scrX / 2) - 19, "The email is already registered.");
+                            attroff(COLOR_PAIR(20));
                         }
                         else if (username_exist(username))
                         {
                             move((scrY / 2) + 13, 0);
                             clrtoeol();
+                            attron(COLOR_PAIR(20));
                             mvprintw((scrY / 2) + 13, (scrX / 2) - 20, "The username is already registered.");
+                            attroff(COLOR_PAIR(20));
                         }
                         else if (strlen(username))
                         {
                             move((scrY / 2) + 13, 0);
                             clrtoeol();
+                            attron(COLOR_PAIR(20));
                             mvprintw((scrY / 2) + 13, (scrX / 2) - 10, "Please enter a name.");
+                            attroff(COLOR_PAIR(20));
                         }
                         else if (strlen(password) < 7)
                         {
                             move((scrY / 2) + 13, 0);
                             clrtoeol();
+                            attron(COLOR_PAIR(20));
                             mvprintw((scrY / 2) + 13, (scrX / 2) - 24, "Please enter a password with at least 7 characters.");
+                            attroff(COLOR_PAIR(20));
                         }
                         else if (checkMail(email))
                         {
                             move((scrY / 2) + 13, 0);
                             clrtoeol();
+                            attron(COLOR_PAIR(20));
                             mvprintw((scrY / 2) + 13, (scrX / 2) - 13, "Please enter a valid email.");
+                            attroff(COLOR_PAIR(20));
                         }
                         break;
                     }
@@ -1491,12 +1618,22 @@ int add_New_User()
 
 int login_guest()
 {
-    DIR *dir = opendir("./.users/~GUEST");
+    DIR *dir = opendir("./.users/.~GUEST");
     if (!dir)
     {
-        mkdir("./.users/~GUEST", 0777);
-        dir = opendir("./.users/~GUEST");
+        mkdir("./.users/.~GUEST", 0777);
+        dir = opendir("./.users/.~GUEST");
     }
+    FILE *file = fopen("./.users/.~GUEST/LeaderBoard.txt", "w");
+    fprintf(file, "0 0 0 0");
+    fclose(file);
+
+    char gs_path[MAX_LINE];
+    sprintf(gs_path, "./.users/.~GUEST/GameSetting.txt");
+    FILE *gs = fopen(gs_path, "w");
+    fprintf(gs, "1\n0\n3\n3");
+    fclose(gs);
+
     return 1;
 }
 
@@ -1546,7 +1683,7 @@ int RegisterMenu()
 
     int ch, t;
 
-    if (users == 1)
+    if (users == 2)
     {
         refresh();
         clear();
@@ -1554,45 +1691,54 @@ int RegisterMenu()
             return 1;
     }
 
+    attron(COLOR_PAIR(9));
     printAsciiArt('r', scrX, scrY, 28, 4);
+    attroff(COLOR_PAIR(9));
+
     refresh();
     keypad(stdscr, TRUE);
 
     int choice = 0;
 
+    attron(COLOR_PAIR(8));
+    printBoard(4, 0, 12, 75);
+    mvprintw((scrY / 2) + 1, scrX / 2 - 9, "(Create New User)");
+    mvprintw((scrY / 2) + 7, scrX / 2 - 8, "(Login As Guest)");
+    mvprintw((scrY / 2) + 4, scrX / 2 - 6, "(User Login)");
+    attroff(COLOR_PAIR(8));
+
     while (1)
     {
 
+        attron(COLOR_PAIR(13) | A_BOLD);
         mvprintw((scrY / 2), scrX / 2 - 18, "° Create your hero for an epic quest.");
-        mvprintw((scrY / 2) + 1, scrX / 2 - 9, "(Create New User)");
         mvprintw((scrY / 2) + 3, scrX / 2 - 33, "° Your champion awaits in the shadows. Return to claim your destiny.");
-        mvprintw((scrY / 2) + 4, scrX / 2 - 6, "(User Login)");
         mvprintw((scrY / 2) + 6, scrX / 2 - 18, "° Enter the Realm as a Wandering Soul");
-        mvprintw((scrY / 2) + 7, scrX / 2 - 8, "(Login As Guest)");
-        mvprintw((scrY / 2) + 9, scrX / 2 - 2, "EXIT");
+        attroff(COLOR_PAIR(13) | A_BOLD);
+        mvprintw((scrY / 2) + 12, scrX / 2 - 2, "EXIT");
 
         refresh();
 
         switch (choice)
         {
         case 1:
-            attron(A_BLINK | COLOR_PAIR(1));
+            attron(A_BLINK | COLOR_PAIR(12));
             mvprintw((scrY / 2), scrX / 2 - 18, "° Create your hero for an epic quest.");
-            attroff(A_BLINK | COLOR_PAIR(1));
+            attroff(A_BLINK | COLOR_PAIR(12));
             break;
         case 2:
-            attron(A_BLINK | COLOR_PAIR(1));
+            attron(A_BLINK | COLOR_PAIR(12));
             mvprintw((scrY / 2) + 3, scrX / 2 - 33, "° Your champion awaits in the shadows. Return to claim your destiny.");
-            attroff(A_BLINK | COLOR_PAIR(1));
+            attroff(A_BLINK | COLOR_PAIR(12));
             break;
         case 3:
-            attron(A_BLINK | COLOR_PAIR(1));
+            attron(A_BLINK | COLOR_PAIR(12));
             mvprintw((scrY / 2) + 6, scrX / 2 - 18, "° Enter the Realm as a Wandering Soul");
-            attroff(A_BLINK | COLOR_PAIR(1));
+            attroff(A_BLINK | COLOR_PAIR(12));
             break;
         case 0:
             attron(A_BLINK | COLOR_PAIR(1));
-            mvprintw((scrY / 2) + 9, scrX / 2 - 2, "EXIT");
+            mvprintw((scrY / 2) + 12, scrX / 2 - 2, "EXIT");
             attroff(A_BLINK | COLOR_PAIR(1));
             break;
         }
@@ -1659,12 +1805,17 @@ int RegisterMenu()
 
 void EnterPage()
 {
-    remove_dir("./.users/~GUEST");
+    printf("\e[8;%d;%dt", 40, 150);
+    fflush(stdout);
+
+    // Mix_Quit();
+
+    // Mix_Music *music = Mix_LoadMUS("./.musics/Main Title.mp3");
+    // Mix_PlayMusic(music, -1);
 
     clear();
     refresh();
     UseColor();
-    noecho();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
     printAsciiArt('R', scrX, scrY, 15, 0);
@@ -1678,36 +1829,1135 @@ void EnterPage()
     clear();
 }
 
-int user_menu(int user_mode)
+void printTable(int big, int x, int y, int users_count, char line[MAX_LINE], char row[MAX_LINE])
 {
-    noecho();
-    keypad(stdscr, TRUE);
+    int lineX = x - (strlen(line) / 2);
+
+    attron(COLOR_PAIR(8));
+    // header
+    mvprintw(y - 16, lineX, "%s", line);
+    mvprintw(y - 15, lineX, "%s", row);
+    mvprintw(y - 14, lineX, "%s", line);
+    mvprintw(y - 13, lineX, "%s", row);
+    int rrrr = -12;
+    for (int i = 0; i < (2 * users_count) && rrrr < 10; i++)
+    {
+        if (rrrr == -6)
+        {
+            mvprintw(y + (rrrr++), lineX, "%s", line);
+            if (users_count > 3)
+            {
+                mvprintw(y + (rrrr++), lineX, "%s", row);
+                mvprintw(y + (rrrr++), lineX, "%s", row);
+            }
+        }
+        else
+            mvprintw(y + (rrrr++), lineX, "%s", row);
+    }
+    mvprintw(y + rrrr, lineX, "%s", line);
+    attroff(COLOR_PAIR(8));
+
+    attron(COLOR_PAIR(13));
+    mvprintw(y - 17, x - 6, "LeaderBoard :");
+    if (users_count > 10)
+    {
+        mvprintw(y - 1, x + (strlen(line) / 2) + 6, "Next Page");
+        mvprintw(y + 1, x + (strlen(line) / 2) + 9, "\u25B6");
+        mvprintw(y - 1, lineX - 19, "Previous Page");
+        mvprintw(y + 1, lineX - 14, "\u25C4");
+    }
+    attroff(COLOR_PAIR(13));
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(y - 15, lineX + 2, "Rate");
+    mvprintw(y - 15, lineX + 9, "Name");
+    mvprintw(y - 15, lineX + 12 + big, "Score");
+    mvprintw(y - 15, lineX + 21 + big, "Golds");
+    mvprintw(y - 15, lineX + 30 + big, "Games");
+    mvprintw(y - 15, lineX + 38 + big, "ex");
+    attroff(COLOR_PAIR(2) | A_BOLD);
+}
+
+void clearTable(int big, int y, int x, char line[MAX_LINE], char row[MAX_LINE])
+{
+    for (int i = -4; i < 9; i += 2)
+    {
+        move(y + i, 0);
+        clrtoeol();
+    }
+    int lineX = x - ((46 + big) / 2);
+
+    attron(COLOR_PAIR(8));
+    for (int rrrr = -4; rrrr < 10; rrrr += 2)
+        mvprintw(y + (rrrr), lineX, "%s", row);
+    attroff(COLOR_PAIR(8));
+}
+
+void leaderBoard(char username[MAX_NAMES])
+{
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
-    curs_set(0);
+    int x = scrX / 2, y = scrY / 2;
 
-    printAsciiArt('R', scrX, scrY, 15, 7);
+    FILE *file = fopen("./.users/LeaderBoard.txt", "r");
+    int users_count, big = 4, target = -1;
+    fscanf(file, "%d\n", &users_count);
+    char names[users_count][MAX_NAMES];
+    int rate[users_count], score[users_count], golds[users_count], games[users_count], ex[users_count], tabs[6];
+    for (int i = 0; i < users_count; i++)
+    {
+        rate[i] = i + 1;
+        fscanf(file, "%s %d %d %d %d\n", names[i], &score[i], &golds[i], &games[i], &ex[i]);
+        if (strlen(names[i]) > big)
+            big = strlen(names[i]);
+        if (strcmp(names[i], username) == 0)
+            target = i;
+    }
+    fclose(file);
 
-    mvprintw((scrY / 2) - 3, (scrX / 2) - 27, "------------------------------------------------------");
-    mvprintw((scrY / 2) - 2, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) - 1, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2), (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 1, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 2, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 3, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 4, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 5, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 6, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 7, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 8, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 9, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 10, (scrX / 2) - 27, "|                                                    |");
-    mvprintw((scrY / 2) + 11, (scrX / 2) - 27, "------------------------------------------------------");
+    for (int i = 0; i < users_count - 1; i++)
+        for (int j = i + 1; j < users_count; j++)
+            if (golds[j] > golds[i])
+            {
+                char n[MAX_NAMES];
+                int t;
+                strcpy(n, names[j]);
+                strcpy(names[j], names[i]);
+                strcpy(names[i], n);
 
-    char username[MAX_NAMES];
+                t = golds[i];
+                golds[i] = golds[j];
+                golds[j] = t;
+
+                t = score[i];
+                score[i] = score[j];
+                score[j] = t;
+
+                t = games[i];
+                games[i] = games[j];
+                games[j] = t;
+
+                t = ex[i];
+                ex[i] = ex[j];
+                ex[j] = ex[i];
+            }
+
+    FILE *write = fopen("./.users/LeaderBoard.txt", "w");
+    fprintf(write, "%d\n", users_count);
+    for (int i = 0; i < users_count; i++)
+        fprintf(write, "%s %d %d %d %d\n", names[i], score[i], golds[i], games[i], ex[i]);
+    fclose(write);
+
+    char line[MAX_LINE], row[MAX_LINE];
+    memset(line, 0, sizeof(line));
+    memset(row, 0, sizeof(row));
+    for (int i = 0; i < 46 + big; i++)
+        line[i] = '-';
+    row[0] = '|';
+    for (int i = 1; i < 7; i++)
+        row[i] = ' ';
+    row[7] = '|';
+    for (int i = 8; i < 10 + big; i++)
+        row[i] = ' ';
+    row[10 + big] = '|';
+    for (int i = 11 + big; i < 19 + big; i++)
+        row[i] = ' ';
+    row[19 + big] = '|';
+    for (int i = 20 + big; i < 28 + big; i++)
+        row[i] = ' ';
+    row[28 + big] = '|';
+    for (int i = 29 + big; i < 36 + big; i++)
+        row[i] = ' ';
+    row[36 + big] = '|';
+    for (int i = 37 + big; i < 45 + big; i++)
+        row[i] = ' ';
+    row[45 + big] = '|';
+
+    tabs[0] = x - ((46 + big) / 2) + 2;
+    tabs[1] = x - ((46 + big) / 2) + 9;
+    tabs[2] = x - ((46 + big) / 2) + 12 + big;
+    tabs[3] = x - ((46 + big) / 2) + 21 + big;
+    tabs[4] = x - ((46 + big) / 2) + 30 + big;
+    tabs[5] = x - ((46 + big) / 2) + 38 + big;
+
+    // best players
+
+    char epithets[3][MAX_NAMES] = {"GOAT", "Elite", "Master"};
+    char emojis[3][MAX_NAMES] = {"\U0001F451", "\U0001F3C6", "\U0001F948"};
+
+    printTable(big, x, y, users_count, line, row);
+
+    int rr = -12;
+    for (int i = 0; i < users_count && i < 3; i++)
+    {
+        if (i != target)
+            mvprintw(y + rr, x + (strlen(line) / 2) + 2, "%s", emojis[i]);
+        attron(COLOR_PAIR(i + 9));
+        mvprintw(y + rr, x - (strlen(line) / 2) - strlen(epithets[i]) - 2, "%s", epithets[i]);
+        attroff(COLOR_PAIR(i + 9));
+        attron(COLOR_PAIR(i + 9) | A_BOLD);
+        mvprintw(y + rr, tabs[0], "#%d", rate[i]);
+        mvprintw(y + rr, tabs[1], "%s", names[i]);
+        mvprintw(y + rr, tabs[2], "%d", score[i]);
+        mvprintw(y + rr, tabs[3], "%d", golds[i]);
+        mvprintw(y + rr, tabs[4], "%d", games[i]);
+        mvprintw(y + rr, tabs[5], "%d", ex[i]);
+        attroff(COLOR_PAIR(i + 9) | A_BOLD);
+        rr += 2;
+    }
+
+    if (target < 3 && target >= 0)
+    {
+        attron(COLOR_PAIR(target + 9));
+        mvprintw(y + (target * 2) - 12, x + (strlen(line) / 2) + 2, "you %s", emojis[target]);
+        attroff(COLOR_PAIR(target + 9));
+    }
+
+    attron(COLOR_PAIR(1) | A_BLINK);
+    mvprintw(y + 13, x - 2, "Exit");
+    attroff(COLOR_PAIR(1) | A_BLINK);
+
+    int r = -4;
+    for (int i = 3; i < users_count && i < 10; i++)
+    {
+        mvprintw(y + r, tabs[0], "%d", rate[i]);
+        if (target == i)
+        {
+            attron(COLOR_PAIR(13));
+            mvprintw(y + r, x - (strlen(line) / 2) - 2, ">");
+            mvprintw(y + r, x + (strlen(line) / 2) + 1, "<");
+            attroff(COLOR_PAIR(13));
+            attron(A_BOLD | COLOR_PAIR(12));
+            mvprintw(y + r, tabs[1], "%s", names[i]);
+            attroff(A_BOLD | COLOR_PAIR(12));
+        }
+        else
+            mvprintw(y + r, tabs[1], "%s", names[i]);
+        mvprintw(y + r, tabs[2], "%d", score[i]);
+        mvprintw(y + r, tabs[3], "%d", golds[i]);
+        mvprintw(y + r, tabs[4], "%d", games[i]);
+        mvprintw(y + r, tabs[5], "%d", ex[i]);
+        r += 2;
+    }
+
+    // getch();
+    int ch, start = 4;
+    while (1)
+    {
+        ch = getch();
+
+        if (ch == '\n')
+        {
+            clear();
+            refresh();
+            flushinp();
+
+            FILE *w = fopen("./.users/LeaderBoard.txt", "w");
+            fprintf(w, "%d\n", users_count);
+            for (int i = 0; i < users_count; i++)
+                fprintf(w, "%s %d %d %d %d\n", names[i], score[i], golds[i], games[i], ex[i]);
+            fclose(w);
+
+            return;
+        }
+        else if (users_count > 10)
+        {
+            if (ch == KEY_LEFT)
+            {
+                start -= 7;
+                clearTable(big, y, x, line, row);
+                if (users_count - start - 6 < 0)
+                    start += users_count - start - 6;
+                if (start < 4)
+                    start = 4;
+
+                int r1 = -4;
+                for (int i = start - 1; i < start + 6; i++)
+                {
+                    mvprintw(y + r1, tabs[0], "%d", rate[i]);
+                    if (target == i)
+                    {
+                        attron(COLOR_PAIR(13));
+                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
+                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        attroff(COLOR_PAIR(13));
+                        attron(A_BOLD | COLOR_PAIR(12));
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                        attroff(A_BOLD | COLOR_PAIR(12));
+                    }
+                    else
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                    mvprintw(y + r1, tabs[2], "%d", score[i]);
+                    mvprintw(y + r1, tabs[3], "%d", golds[i]);
+                    mvprintw(y + r1, tabs[4], "%d", games[i]);
+                    mvprintw(y + r1, tabs[5], "%d", ex[i]);
+                    r1 += 2;
+                }
+            }
+            else if (ch == KEY_RIGHT)
+            {
+                start += 7;
+                clearTable(big, y, x, line, row);
+                if (users_count - start - 6 < 0)
+                    start += users_count - start - 6;
+                if (start < 4)
+                    start = 4;
+
+                int r1 = -4;
+                for (int i = start - 1; i < start + 6; i++)
+                {
+                    mvprintw(y + r1, tabs[0], "%d", rate[i]);
+                    if (target == i)
+                    {
+                        attron(COLOR_PAIR(13));
+                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
+                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        attroff(COLOR_PAIR(13));
+                        attron(A_BOLD | COLOR_PAIR(12));
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                        attroff(A_BOLD | COLOR_PAIR(12));
+                    }
+                    else
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                    mvprintw(y + r1, tabs[2], "%d", score[i]);
+                    mvprintw(y + r1, tabs[3], "%d", golds[i]);
+                    mvprintw(y + r1, tabs[4], "%d", games[i]);
+                    mvprintw(y + r1, tabs[5], "%d", ex[i]);
+                    r1 += 2;
+                }
+            }
+            else if (ch == KEY_UP)
+            {
+                start--;
+                clearTable(big, y, x, line, row);
+                if (users_count - start - 6 < 0)
+                    start += users_count - start - 6;
+                if (start < 4)
+                    start = 4;
+
+                int r1 = -4;
+                for (int i = start - 1; i < start + 6; i++)
+                {
+                    mvprintw(y + r1, tabs[0], "%d", rate[i]);
+                    if (target == i)
+                    {
+                        attron(COLOR_PAIR(13));
+                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
+                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        attroff(COLOR_PAIR(13));
+                        attron(A_BOLD | COLOR_PAIR(12));
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                        attroff(A_BOLD | COLOR_PAIR(12));
+                    }
+                    else
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                    mvprintw(y + r1, tabs[2], "%d", score[i]);
+                    mvprintw(y + r1, tabs[3], "%d", golds[i]);
+                    mvprintw(y + r1, tabs[4], "%d", games[i]);
+                    mvprintw(y + r1, tabs[5], "%d", ex[i]);
+                    r1 += 2;
+                }
+            }
+            else if (ch == KEY_DOWN)
+            {
+                start++;
+                clearTable(big, y, x, line, row);
+                if (users_count - start - 6 < 0)
+                    start += users_count - start - 6;
+                if (start < 4)
+                    start = 4;
+
+                int r1 = -4;
+                for (int i = start - 1; i < start + 6; i++)
+                {
+                    mvprintw(y + r1, tabs[0], "%d", rate[i]);
+                    if (target == i)
+                    {
+                        attron(COLOR_PAIR(13));
+                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
+                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        attroff(COLOR_PAIR(13));
+                        attron(A_BOLD | COLOR_PAIR(12));
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                        attroff(A_BOLD | COLOR_PAIR(12));
+                    }
+                    else
+                        mvprintw(y + r1, tabs[1], "%s", names[i]);
+                    mvprintw(y + r1, tabs[2], "%d", score[i]);
+                    mvprintw(y + r1, tabs[3], "%d", golds[i]);
+                    mvprintw(y + r1, tabs[4], "%d", games[i]);
+                    mvprintw(y + r1, tabs[5], "%d", ex[i]);
+                    r1 += 2;
+                }
+            }
+        }
+    }
+}
+
+void New_Game(int user_mode)
+{
+#pragma region start game
+    UseColor();
+    int scrY, scrX;
+    getmaxyx(stdscr, scrY, scrX);
+    int x = scrX / 2, y = scrY / 2;
+    // mvprintw(y, x, "");
+}
+
+void mv(int user_mode)
+{
+    UseColor();
+    int scrY, scrX;
+    getmaxyx(stdscr, scrY, scrX);
+    printw(" \U0001F451 \U0001F947 \U0001F3C6 \U0001F511 \U0001F6AA \u2192 \U0001F47E \U0001F409 \u200D \U0001F6E1 \u2694 \u25B6 \u25C0 \u25B6 \u25CB \u25A0 \u2665 \u2663 \u2660 \u2620 \u231B \u231B \u2764 \u2744 \u2728 \u2714 \u2708 \u266A \u2665 \u263A \u2615 \u271D \u270C \u270B \u270A \u2705 \u267B \u2666 \u27BF \u27B0 \u27A1 \u2747 ");
+    //             👑       🥇          🏆        🔑         🚪       →        👾        🐉         🛡      ⚔          ▶     ◀       ▶     ○      ■      ♥       ♣     ♠      ☠      ⌛     ⌛     ❤      ❄      ✨     ✔      ✈      ♪       ♥      ☺     ☕      ✝      ✌     ✋      ✊    ✅      ♻      ♦     ➿     ➰     ➡      ❇
+    mvprintw(scrY - 1, 0, "scrY = %d", scrY);
+    mvprintw(0, scrX - 9, "scrX = %d", scrX);
+    int x = scrX / 2, y = scrY / 2;
+    mvprintw(scrY - 1, x - 3, "y = %d", y);
+    mvprintw(y, scrX - 6, "x = %d", x);
+    Node *player = (Node *)malloc(sizeof(Node));
+    player->x = x;
+    player->y = y;
+    int ch;
+    while (1)
+    {
+        attron(A_BLINK);
+        mvprintw(player->y, player->x, "\u25B6");
+        attroff(A_BLINK);
+        ch = getch();
+        if ((ch == KEY_UP || ch == KEY_DOWN || ch == KEY_RIGHT || ch == KEY_LEFT) && (player->x > 0 && player->x < scrX && player->y > 0 && player->y < scrY - 1))
+            mvprintw(player->y, player->x, " ");
+
+        if (ch == KEY_UP && player->y > 1)
+            player->y--;
+        else if (ch == KEY_DOWN && player->y < scrY - 2)
+            player->y++;
+        else if (ch == KEY_LEFT && player->x > 1)
+            player->x--;
+        else if (ch == KEY_RIGHT && player->x < scrX - 2)
+            player->x++;
+        else if (ch == 'q')
+            break;
+    }
+}
+
+void game_setting(int user_mode, char username[MAX_NAMES])
+{
+    UseColor();
+    int scrX, scrY;
+    getmaxyx(stdscr, scrY, scrX);
+    int x = scrX / 2, y = scrY / 2;
+
+    int difficulty, color, character, choose_music;
+    char path[MAX_LINE];
+    char *characters[5] = {"A", "ᛟ", "ᛸ", "\u2B55", "\U0001F7E5"};
+    char *u26AA[6] = {"\u2B55", "\U0001F7E2", "\U0001F535", "\U0001F7E0", "\U0001F7E4", "\U0001F7E3"};
+    char *u2590[6] = {"\U0001F7E5", "\U0001F7E9", "\U0001F7E6", "\U0001F7E7", "\U0001F7EB", "\U0001F7EA"};
+
+    if (user_mode != 3)
+        sprintf(path, "./.users/%s/GameSetting.txt", username);
+    else
+        sprintf(path, "./.users/.~GUEST/GameSetting.txt");
+
+    FILE *file = fopen(path, "r");
+    fscanf(file, "%d\n%d\n%d\n%d", &difficulty, &character, &color, &choose_music);
+    fclose(file);
+
+    DIR *dir = opendir("./.musics");
+    int musics_count = 0;
+    struct dirent *input;
+    while ((input = readdir(dir)) != NULL)
+    {
+        if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
+            continue;
+        musics_count++;
+    }
+    closedir(dir);
+    char(*music_names)[MAX_NAMES] = malloc(musics_count * MAX_NAMES);
+    DIR *dir_read = opendir("./.musics");
+    int index = 0;
+    struct dirent *input2;
+    while ((input2 = readdir(dir_read)) != NULL)
+    {
+        if (!strcmp(input2->d_name, ".") || !strcmp(input2->d_name, ".."))
+            continue;
+        if (index < musics_count)
+        {
+            strncpy(music_names[index], input2->d_name, MAX_NAMES - 1);
+            music_names[index][MAX_NAMES - 1] = '\0';
+            index++;
+        }
+    }
+    closedir(dir_read);
+    attron(COLOR_PAIR(8));
+    printBoard(0, 0, 20, 75);
+    attroff(COLOR_PAIR(8));
+
+    attron(COLOR_PAIR(9) | A_BOLD);
+    mvprintw(y - 12, x - 3, "SETTING");
+    attroff(COLOR_PAIR(9) | A_BOLD);
+
+    attron(COLOR_PAIR(13) | A_BOLD);
+    mvprintw(y - 8, x - 9, "Difficulty Level :");
+    mvprintw(y - 3, x - 9, "Character Setting :");
+    mvprintw(y + 5, x - 3, "Songs :");
+    attroff(COLOR_PAIR(13) | A_BOLD);
+
+    mvprintw(y - 6, x - 35, " ");
+    mvprintw(y - 6, x + 35, " ");
+    mvprintw(y - 6, x - 22, "|------------|---------|--------------------|");
+    mvprintw(y - 5, x - 26, "Explorer    Adventurer  Legend           Mediterranean");
+    mvprintw(y + 1, x - 4, "Character");
+    mvprintw(y + 2, x - 2, "Color");
+    attron(COLOR_PAIR(color + 20));
+    mvprintw(y - 1, x, "%s", characters[character]);
+    attroff(COLOR_PAIR(color + 20));
+    mvprintw(y + 7, x - (strlen(music_names[choose_music]) / 2), "%s", music_names[choose_music]);
+
+    int ch, p = 0;
+
+    int tab_op[4] = {x - 22, x - 9, x + 1, x + 22}, tab_dif[4] = {x - 26, x - 14, x - 2, x + 15};
+    char *dif[4] = {"Explorer", "Adventurer", "Legend", "Mediterranean"};
+
+    while (1)
+    {
+        mvprintw(y - 6, x - 30, " ");
+        mvprintw(y - 6, x + 30, " ");
+        mvprintw(y + 1, x - 6, " ");
+        mvprintw(y + 1, x + 6, " ");
+        mvprintw(y + 2, x - 6, " ");
+        mvprintw(y + 2, x + 6, " ");
+        mvprintw(y + 7, x - 30, " ");
+        mvprintw(y + 7, x + 30, " ");
+        mvprintw(y + 13, x - 2, "SAVE");
+        mvprintw(y + 15, x - 2, "EXIT");
+
+        mvprintw(y + 7, x - (strlen(music_names[choose_music]) / 2), "%s", music_names[choose_music]);
+
+        if (character < 3)
+        {
+            attron(COLOR_PAIR(color + 20));
+            mvprintw(y - 1, x, "%s", characters[character]);
+            attroff(COLOR_PAIR(color + 20));
+        }
+        else if (character == 3)
+            mvprintw(y - 1, x, "%s", u26AA[color]);
+        else if (character == 4)
+            mvprintw(y - 1, x, "%s", u2590[color]);
+
+        // difficulty
+        if (p == 0)
+        {
+            while (1)
+            {
+                mvprintw(y - 6, x - 30, " ");
+                mvprintw(y - 6, x + 30, " ");
+                mvprintw(y - 6, x - 22, "|------------|---------|--------------------|");
+                mvprintw(y - 5, x - 26, "Explorer    Adventurer  Legend           Mediterranean");
+                attron(COLOR_PAIR(9));
+                if (difficulty != 0)
+                    mvprintw(y - 6, x - 30, "\u25C0");
+                if (difficulty != 3)
+                    mvprintw(y - 6, x + 30, "\u25B6");
+                attroff(COLOR_PAIR(9));
+
+                attron(COLOR_PAIR(11));
+                mvprintw(y - 6, tab_op[difficulty], "░");
+                mvprintw(y - 5, tab_dif[difficulty], "%s", dif[difficulty]);
+                attroff(COLOR_PAIR(11));
+
+                ch = getch();
+
+                if (ch == KEY_RIGHT && difficulty != 3)
+                    difficulty = (difficulty + 1) % 4;
+                else if (ch == KEY_LEFT && difficulty != 0)
+                    difficulty = (difficulty + 3) % 4;
+                else if (ch == KEY_DOWN || ch == KEY_UP || ch == '\n')
+                    break;
+            }
+        }
+
+        // character
+        else if (p == 1)
+        {
+            while (1)
+            {
+                if (character < 3)
+                {
+                    attron(COLOR_PAIR(color + 20) | A_BLINK);
+                    mvprintw(y - 1, x, "%s", characters[character]);
+                    attroff(COLOR_PAIR(color + 20) | A_BLINK);
+                }
+                else if (character == 3)
+                    mvprintw(y - 1, x, "%s", u26AA[color]);
+                else if (character == 4)
+                    mvprintw(y - 1, x, "%s", u2590[color]);
+
+                mvprintw(y + 1, x - 4, "Character");
+
+                attron(COLOR_PAIR(9));
+                mvprintw(y + 1, x - 6, "\u25C0");
+                mvprintw(y + 1, x + 6, "\u25B6");
+                attroff(COLOR_PAIR(9));
+                ch = getch();
+                if (ch == KEY_RIGHT)
+                    character = (character + 1) % 5;
+                else if (ch == KEY_LEFT)
+                    character = (character + 4) % 5;
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+            }
+        }
+
+        // color
+        else if (p == 2)
+        {
+            while (1)
+            {
+                if (character < 3)
+                {
+                    attron(COLOR_PAIR(color + 20) | A_BLINK);
+                    mvprintw(y - 1, x, "%s", characters[character]);
+                    attroff(COLOR_PAIR(color + 20) | A_BLINK);
+                }
+                else if (character == 3)
+                    mvprintw(y - 1, x, "%s", u26AA[color]);
+                else if (character == 4)
+                    mvprintw(y - 1, x, "%s", u2590[color]);
+
+                mvprintw(y + 2, x - 2, "Color");
+
+                attron(COLOR_PAIR(9));
+                mvprintw(y + 2, x - 6, "\u25C0");
+                mvprintw(y + 2, x + 6, "\u25B6");
+                attroff(COLOR_PAIR(9));
+                ch = getch();
+                if (ch == KEY_RIGHT)
+                    color = (color + 1) % 6;
+                else if (ch == KEY_LEFT)
+                    color = (color + 5) % 6;
+                else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
+                    break;
+            }
+        }
+
+        // song
+        else if (p == 3)
+        {
+            while (1)
+            {
+                mvprintw(y + 7, x - 30, "                                                                  ");
+                attron(COLOR_PAIR(21) | A_BLINK);
+                mvprintw(y + 7, x - (strlen(music_names[choose_music]) / 2), "%s", music_names[choose_music]);
+                attroff(COLOR_PAIR(21) | A_BLINK);
+                attron(COLOR_PAIR(9));
+                if (choose_music != 0)
+                    mvprintw(y + 7, x - 30, "\u25C0");
+                if (choose_music != musics_count - 1)
+                    mvprintw(y + 7, x + 30, "\u25B6");
+                attroff(COLOR_PAIR(9));
+
+                ch = getch();
+
+                if (ch == KEY_RIGHT && (choose_music != musics_count - 1))
+                    choose_music = (choose_music + 1) % musics_count;
+                else if (ch == KEY_LEFT && choose_music != 0)
+                    choose_music = (choose_music + musics_count - 1) % musics_count;
+                else if (ch == KEY_DOWN || ch == KEY_UP || ch == '\n')
+                    break;
+            }
+        }
+
+        // save
+        else if (p == 4)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw(y + 13, x - 2, "SAVE");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            while (1)
+            {
+                ch = getch();
+
+                if (ch == '\n')
+                {
+                    FILE *write = fopen(path, "w");
+                    fprintf(write, "%d\n%d\n%d\n%d", difficulty, character, color, choose_music);
+                    fclose(write);
+                    clear();
+                    refresh();
+                    flushinp();
+                    return;
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        // exit
+        else if (p == 5)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw(y + 15, x - 2, "EXIT");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            while (1)
+            {
+                ch = getch();
+
+                if (ch == '\n')
+                {
+                    clear();
+                    refresh();
+                    flushinp();
+                    return;
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        if (ch == KEY_UP)
+            p = (p + 5) % 6;
+        else if (ch == KEY_DOWN || ch == '\n')
+            p = (p + 1) % 6;
+    }
+}
+
+void sortLB()
+{
+    FILE *file = fopen("./.users/LeaderBoard.txt", "r");
+    int users_count;
+    fscanf(file, "%d\n", &users_count);
+    char names[users_count][MAX_NAMES];
+    int score[users_count], golds[users_count], games[users_count], ex[users_count], tabs[6];
+    for (int i = 0; i < users_count; i++)
+        fscanf(file, "%s %d %d %d %d\n", names[i], &score[i], &golds[i], &games[i], &ex[i]);
+    fclose(file);
+
+    for (int i = 0; i < users_count - 1; i++)
+        for (int j = i + 1; j < users_count; j++)
+            if (golds[j] > golds[i])
+            {
+                char n[MAX_NAMES];
+                int t;
+                strcpy(n, names[j]);
+                strcpy(names[j], names[i]);
+                strcpy(names[i], n);
+
+                t = golds[i];
+                golds[i] = golds[j];
+                golds[j] = t;
+
+                t = score[i];
+                score[i] = score[j];
+                score[j] = t;
+
+                t = games[i];
+                games[i] = games[j];
+                games[j] = t;
+
+                t = ex[i];
+                ex[i] = ex[j];
+                ex[j] = ex[i];
+            }
+
+    FILE *write = fopen("./.users/LeaderBoard.txt", "w");
+    fprintf(write, "%d\n", users_count);
+    for (int i = 0; i < users_count; i++)
+        fprintf(write, "%s %d %d %d %d\n", names[i], score[i], golds[i], games[i], ex[i]);
+    fclose(write);
+}
+
+void profile_menu(int user_mode, char username[MAX_NAMES])
+{
+    UseColor();
+    int scrX, scrY;
+    getmaxyx(stdscr, scrY, scrX);
+    int x = scrX / 2, y = scrY / 2;
+
+    char line[71];
+    line[70] = '\0';
+    memset(line, '-', 70);
+
+    char *characters[5] = {"A", "ᛟ", "ᛸ", "\u2B55", "\U0001F7E5"};
+    char *u26AA[6] = {"\u2B55", "\U0001F7E2", "\U0001F535", "\U0001F7E0", "\U0001F7E4", "\U0001F7E3"};
+    char *u2590[6] = {"\U0001F7E5", "\U0001F7E9", "\U0001F7E6", "\U0001F7E7", "\U0001F7EB", "\U0001F7EA"};
+
+    FILE *file = fopen("./.users/LeaderBoard.txt", "r");
+    int users_count;
+    fscanf(file, "%d\n", &users_count);
+    char names[users_count][MAX_NAMES], email[MAX_NAMES];
+    int score[users_count], golds[users_count], games[users_count], ex[users_count];
+
+    int difficulty, character, color, G_score, G_gold, G_xp, G_game;
+    FILE *login = fopen("./.users/Login.txt", "r");
+    int user_count, target;
+    fscanf(login, "%d\n", &user_count);
+    char nam[user_count][MAX_NAMES], password[user_count][MAX_NAMES], emails[user_count][MAX_NAMES];
+    int rank = -1;
     if (user_mode != 3)
     {
+        for (int i = 0; i < users_count; i++)
+            fscanf(file, "%s %d %d %d %d\n", names[i], &score[i], &golds[i], &games[i], &ex[i]);
+        fclose(file);
+
+        for (int i = 0; i < users_count - 1; i++)
+            for (int j = i + 1; j < users_count; j++)
+                if (golds[j] > golds[i])
+                {
+                    char n[MAX_NAMES];
+                    int t;
+                    strcpy(n, names[j]);
+                    strcpy(names[j], names[i]);
+                    strcpy(names[i], n);
+
+                    t = golds[i];
+                    golds[i] = golds[j];
+                    golds[j] = t;
+
+                    t = score[i];
+                    score[i] = score[j];
+                    score[j] = t;
+
+                    t = games[i];
+                    games[i] = games[j];
+                    games[j] = t;
+
+                    t = ex[i];
+                    ex[i] = ex[j];
+                    ex[j] = ex[i];
+                }
+
+        FILE *write = fopen("./.users/LeaderBoard.txt", "w");
+        fprintf(write, "%d\n", users_count);
+        for (int i = 0; i < users_count; i++)
+            fprintf(write, "%s %d %d %d %d\n", names[i], score[i], golds[i], games[i], ex[i]);
+        fclose(write);
+
+        for (int i = 0; i < user_count; i++)
+        {
+            fscanf(login, "%*d %s %s %s", nam[i], password[i], emails[i]);
+            if (strcmp(username, nam[i]) == 0)
+            {
+                target = i;
+                strcpy(email, emails[i]);
+                break;
+            }
+        }
+        fclose(login);
+
+        for (int i = 0; i < users_count; i++)
+            if (strcmp(names[i], username) == 0)
+                rank = i;
+
+        char path[MAX_LINE];
+        sprintf(path, "./.users/%s/GameSetting.txt", username);
+        FILE *rgs = fopen(path, "r");
+        fscanf(rgs, "%d\n%d\n%d\n%*d", &difficulty, &character, &color);
+        fclose(rgs);
+    }
+    else
+    {
+        char path[MAX_LINE];
+        FILE *rgs = fopen("./.users/.~GUEST/GameSetting.txt", "r");
+        fscanf(rgs, "%d\n%d\n%d\n%*d", &difficulty, &character, &color);
+        fclose(rgs);
+
+        FILE *rgs2 = fopen("./.users/.~GUEST/LeaderBoard.txt", "r");
+        fscanf(rgs2, "%d %d %d %d", &G_score, &G_gold, &G_game, &G_xp);
+        fclose(rgs2);
+    }
+
+    attron(COLOR_PAIR(8));
+    printBoard(-1, 0, 17, 70);
+    mvprintw(y - 1, x - (strlen(line) / 2), "%s", line);
+    printBoard(-5, -28, 7, 11);
+    attroff(COLOR_PAIR(8));
+    attron(COLOR_PAIR(9) | A_BOLD);
+    mvprintw(y - 11, x - 3, "Profile");
+    char name2[MAX_NAMES];
+    strcpy(name2, username);
+    if (user_mode == 3)
+    {
+        for (int i = 0; i < strlen(name2) - 1; i++)
+            name2[i] = name2[i + 1];
+        name2[strlen(name2) - 1] = '\0';
+    }
+    mvprintw(y - 7, x - 21, "%s", name2);
+    attroff(COLOR_PAIR(9) | A_BOLD);
+    attron(COLOR_PAIR(13) | A_BOLD);
+    mvprintw(y - 3, x - 21, "Level ");
+    mvprintw(y + 1, x - 33, "Player Rank : ");
+    mvprintw(y + 1, x + 3, "Total Golds : ");
+    mvprintw(y + 3, x - 33, "Total Score : ");
+    mvprintw(y + 3, x + 3, "Games Played : ");
+    mvprintw(y + 5, x + 3, "XP : ");
+    attroff(COLOR_PAIR(13) | A_BOLD);
+    if (user_mode != 3)
+    {
+        mvprintw(y - 5, x - 21, "%s", email);
+        mvprintw(y - 3, x - 14, "%d", ex[rank]);
+        attron(COLOR_PAIR(21));
+        mvprintw(y + 1, x - 18, "%d", rank + 1);
+        mvprintw(y + 1, x + 19, "%d", golds[rank]);
+        mvprintw(y + 3, x - 18, "%d", score[rank]);
+        mvprintw(y + 3, x + 19, "%d", games[rank]);
+        mvprintw(y + 5, x + 19, "%d", ex[rank]);
+        attroff(COLOR_PAIR(21));
+    }
+    else
+    {
+        mvprintw(y - 5, x - 21, "---");
+        mvprintw(y - 3, x - 14, "%d", G_xp);
+        attron(COLOR_PAIR(21));
+        mvprintw(y + 1, x - 18, "---");
+        mvprintw(y + 1, x + 19, "%d", G_gold);
+        mvprintw(y + 3, x - 18, "%d", G_score);
+        mvprintw(y + 3, x + 19, "%d", G_game);
+        mvprintw(y + 5, x + 19, "%d", G_xp);
+        attroff(COLOR_PAIR(21));
+    }
+
+    if (character < 3)
+    {
+        attron(COLOR_PAIR(color + 20));
+        mvprintw(y - 5, x - 28, "%s", characters[character]);
+        attroff(COLOR_PAIR(color + 20));
+    }
+    else if (character == 3)
+        mvprintw(y - 5, x - 28, "%s", u26AA[color]);
+    else if (character == 4)
+        mvprintw(y - 5, x - 28, "%s", u2590[color]);
+
+    int ch, p = 2;
+
+    while (1)
+    {
+        if (user_mode == 3)
+        {
+
+            attron(COLOR_PAIR(8));
+            mvprintw(y + 9, x - 2, "EDIT");
+            mvprintw(y + 11, x - 7, "Change Password");
+            attroff(COLOR_PAIR(8));
+        }
+        else
+        {
+            mvprintw(y + 9, x - 2, "EDIT");
+            mvprintw(y + 11, x - 7, "Change Password");
+        }
+        mvprintw(y + 13, x - 2, "EXIT");
+
+        // EDIT
+        if (p == 0)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw(y + 9, x - 2, "EDIT");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+                    int pp = 0;
+                    mvprintw(y + 11, x - 7, "               ");
+                    mvprintw(y + 13, x - 2, "    ");
+                    while (1)
+                    {
+                        mvprintw(y + 9, x - 2, "SAVE");
+                        // User Name
+                        if (pp == 0)
+                        {
+                            move(y - 7, x - 21 + strlen(username));
+                            curs_set(1);
+                            while (1)
+                            {
+                                ch = getch();
+                                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(username))
+                                    username[strlen(username) - 1] = '\0';
+                                else if (ch >= '!' && ch < '~' && strlen(username) < LIMIT_INPUT)
+                                {
+                                    username[strlen(username)] = (char)ch;
+                                    username[strlen(username)] = '\0';
+                                }
+                                else if ((ch == KEY_UP || ch == KEY_DOWN) && strlen(username))
+                                    break;
+
+                                mvprintw(y - 7, x - 21, "                                                      ");
+                                attron(COLOR_PAIR(9) | A_BOLD);
+                                mvprintw(y - 7, x - 21, "%s", username);
+                                attroff(COLOR_PAIR(9) | A_BOLD);
+                            }
+                            curs_set(0);
+                        }
+
+                        // Email
+                        else if (pp == 1)
+                        {
+                            move(y - 5, x - 21 + strlen(email));
+                            curs_set(1);
+                            while (1)
+                            {
+                                ch = getch();
+                                if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(email))
+                                    email[strlen(email) - 1] = '\0';
+                                else if (ch >= '!' && ch < '~' && strlen(email) < LIMIT_INPUT)
+                                {
+                                    email[strlen(email)] = (char)ch;
+                                    email[strlen(email)] = '\0';
+                                }
+                                else if ((ch == KEY_UP || ch == KEY_DOWN) && checkMail(email))
+                                    break;
+
+                                mvprintw(y - 5, x - 21, "                                                      ");
+                                mvprintw(y - 5, x - 21, "%s", email);
+                            }
+                            curs_set(0);
+                        }
+
+                        // SAVE
+                        else if (pp == 2)
+                        {
+                            attron(COLOR_PAIR(1) | A_BLINK);
+                            mvprintw(y + 9, x - 2, "SAVE");
+                            attroff(COLOR_PAIR(1) | A_BLINK);
+                            while (1)
+                            {
+                                ch = getch();
+                                if (ch == '\n' && user_mode != 3)
+                                {
+                                    strcpy(password[target], encrypt(decrypt(password[target], nam[target]), username));
+
+                                    // LeaderBoard Updated
+                                    strcpy(names[rank], username);
+                                    FILE *write2 = fopen("./.users/LeaderBoard.txt", "w");
+                                    fprintf(write2, "%d\n", users_count);
+                                    for (int i = 0; i < users_count; i++)
+                                        fprintf(write2, "%s %d %d %d %d\n", names[i], score[i], golds[i], games[i], ex[i]);
+                                    fclose(write2);
+
+                                    // UserInfo.txt Updated
+                                    char old_path[MAX_LINE];
+                                    sprintf(old_path, "./.users/%s", nam[target]);
+                                    char new_path[MAX_LINE];
+                                    sprintf(new_path, "./.users/%s", username);
+                                    rename(old_path, new_path);
+                                    char new_path2[MAX_LINE];
+                                    sprintf(new_path2, "./.users/%s/UserInfo.txt", username);
+                                    FILE *write_info = fopen(new_path2, "w");
+                                    fprintf(write_info, "%s\n%s\n%s", username, password[target], email);
+                                    fclose(write_info);
+
+                                    // Login.txt Updated
+                                    strcpy(emails[target], email);
+                                    strcpy(nam[target], username);
+                                    FILE *login_w = fopen("./.users/Login.txt", "w");
+                                    fprintf(login_w, "%d\n", user_count);
+                                    for (int i = 0; i < user_count; i++)
+                                        fprintf(login_w, "%d %s %s %s", i + 1, nam[i], password[i], emails[i]);
+                                    fclose(login_w);
+                                    break;
+                                }
+                                else if (ch == KEY_UP || ch == KEY_DOWN)
+                                    break;
+                            }
+                        }
+
+                        if (ch == KEY_UP)
+                            pp = (pp + 2) % 3;
+                        else if (ch == KEY_DOWN)
+                            pp = (pp + 1) % 3;
+                        else if (ch == '\n')
+                            break;
+                    }
+                    mvprintw(y + 11, x - 7, "Change Password");
+                    mvprintw(y + 13, x - 2, "EXIT");
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        // Change Password
+        else if (p == 1)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw(y + 11, x - 7, "Change Password");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+                    clear();
+                    refresh();
+                    flushinp();
+                    new_pass(username);
+                    profile_menu(user_mode, username);
+                    return;
+                }
+                else if (ch == KEY_UP || ch == KEY_DOWN)
+                    break;
+            }
+        }
+
+        // EXIT
+        else if (p == 2)
+        {
+            attron(COLOR_PAIR(1) | A_BLINK);
+            mvprintw(y + 13, x - 2, "EXIT");
+            attroff(COLOR_PAIR(1) | A_BLINK);
+            while (1)
+            {
+                ch = getch();
+                if (ch == '\n')
+                {
+                    clear();
+                    refresh();
+                    flushinp();
+                    return;
+                }
+                else if ((ch == KEY_UP || ch == KEY_DOWN) && user_mode != 3)
+                    break;
+            }
+        }
+
+        if (user_mode != 3)
+            if (ch == KEY_UP)
+                p = (p + 2) % 3;
+            else if (ch == KEY_DOWN || ch == '\n')
+                p = (p + 1) % 3;
+    }
+}
+
+int user_menu(int user_mode)
+{
+    /*
+    0 = exit
+    1 = else
+    */
+
+    UseColor();
+    int scrX, scrY;
+    getmaxyx(stdscr, scrY, scrX);
+
+    attron(COLOR_PAIR(9));
+    printAsciiArt('R', scrX, scrY, 15, 7);
+    attroff(COLOR_PAIR(9));
+
+    attron(COLOR_PAIR(8));
+    printBoard(4, 0, 15, 55);
+    attroff(COLOR_PAIR(8));
+
+    char username[MAX_NAMES];
+    memset(username, 0, sizeof(username));
+    strcpy(username, "~GUEST");
+
+    attron(COLOR_PAIR(21));
+    if (user_mode != 3)
+    {
+        memset(username, 0, sizeof(username));
         FILE *file = fopen("./.users/Login.txt", "r");
         fscanf(file, "%*d\n%*d %s", username);
         fclose(file);
@@ -1717,30 +2967,44 @@ int user_menu(int user_mode)
     }
     else
         mvprintw((scrY / 2) - 5, (scrX / 2) - 4, "welcome!");
+    attroff(COLOR_PAIR(21));
 
     int ch, p = 0;
 
     while (1)
     {
-        mvprintw((scrY / 2) - 1, (scrX / 2) - 4, "New Game");
+        attron(COLOR_PAIR(13));
         mvprintw((scrY / 2) + 1, (scrX / 2) - 6, "continue Game");
+        mvprintw((scrY / 2) - 1, (scrX / 2) - 4, "New Game");
         mvprintw((scrY / 2) + 3, (scrX / 2) - 5, "Leaderboard");
         mvprintw((scrY / 2) + 5, (scrX / 2) - 3, "Setting");
         mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Profile");
         mvprintw((scrY / 2) + 9, (scrX / 2) - 2, "Exit");
+        attroff(COLOR_PAIR(13));
+        if (user_mode == 3)
+        {
+            attron(COLOR_PAIR(8));
+            mvprintw((scrY / 2) + 1, (scrX / 2) - 6, "continue Game");
+            attroff(COLOR_PAIR(8));
+        }
 
         // New Game
         if (p == 0)
         {
-            attron(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(12) | A_BLINK);
             mvprintw((scrY / 2) - 1, (scrX / 2) - 4, "New Game");
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attroff(COLOR_PAIR(12) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n')
                 {
-                    /* code */
+                    clear();
+                    refresh();
+                    flushinp();
+                    // New_Game(user_mode);
+                    mv(user_mode);
+                    return 1;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -1750,9 +3014,9 @@ int user_menu(int user_mode)
         // Continue Game
         else if (p == 1)
         {
-            attron(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(12) | A_BLINK);
             mvprintw((scrY / 2) + 1, (scrX / 2) - 6, "continue Game");
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attroff(COLOR_PAIR(12) | A_BLINK);
             while (1)
             {
                 ch = getch();
@@ -1768,15 +3032,25 @@ int user_menu(int user_mode)
         // Leaderboard
         else if (p == 2)
         {
-            attron(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(12) | A_BLINK);
             mvprintw((scrY / 2) + 3, (scrX / 2) - 5, "Leaderboard");
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attroff(COLOR_PAIR(12) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n')
                 {
-                    /* code */
+                    clear();
+                    refresh();
+                    flushinp();
+                    leaderBoard(username);
+                    clear();
+                    refresh();
+                    flushinp();
+                    if (!user_menu(user_mode))
+                        return 0;
+                    else
+                        return 1;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -1786,15 +3060,25 @@ int user_menu(int user_mode)
         // Setting
         else if (p == 3)
         {
-            attron(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(12) | A_BLINK);
             mvprintw((scrY / 2) + 5, (scrX / 2) - 3, "Setting");
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attroff(COLOR_PAIR(12) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n')
                 {
-                    /* code */
+                    clear();
+                    refresh();
+                    flushinp();
+                    game_setting(user_mode, username);
+                    clear();
+                    refresh();
+                    flushinp();
+                    if (!user_menu(user_mode))
+                        return 0;
+                    else
+                        return 1;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -1804,15 +3088,22 @@ int user_menu(int user_mode)
         // Profile
         else if (p == 4)
         {
-            attron(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(12) | A_BLINK);
             mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Profile");
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attroff(COLOR_PAIR(12) | A_BLINK);
             while (1)
             {
                 ch = getch();
                 if (ch == '\n')
                 {
-                    /* code */
+                    clear();
+                    refresh();
+                    flushinp();
+                    profile_menu(user_mode, username);
+                    if (!user_menu(user_mode))
+                        return 0;
+                    else
+                        return 1;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -1822,9 +3113,9 @@ int user_menu(int user_mode)
         // Exit
         else if (p == 5)
         {
-            attron(COLOR_PAIR(1) | A_BLINK);
+            attron(COLOR_PAIR(12) | A_BLINK);
             mvprintw((scrY / 2) + 9, (scrX / 2) - 2, "Exit");
-            attroff(COLOR_PAIR(1) | A_BLINK);
+            attroff(COLOR_PAIR(12) | A_BLINK);
             while (1)
             {
                 ch = getch();
@@ -1858,6 +3149,9 @@ int user_menu(int user_mode)
 int main()
 {
     srand(time(NULL));
+    // SDL_Init(SDL_INIT_AUDIO);
+    // Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
+    setlocale(LC_ALL, "");
     initscr();
     // raw();
     cbreak();
@@ -1873,6 +3167,8 @@ int main()
             continue;
     }
 
+    // SDL_Quit();
+    remove_dir("./.users/.~GUEST");
     endwin();
     return 0;
 }
