@@ -58,6 +58,9 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
     "stat.h": "c",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "sdl.h": "c",
+    "locale.h": "c",
+    "ncurses.h": "c"
   }
 }
