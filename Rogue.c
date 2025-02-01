@@ -123,28 +123,98 @@ void generate_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], i
     char path[MAX_LINE];
     sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d.txt", username, floor);
     FILE *write = fopen(path, "w");
-    fprintf(write, "0\n");
-    fclose(write);
+    fprintf(write, "%d\n", rooms_count);
 
-    char **neighbors = (char **)malloc(sizeof(char *) * rooms_count);
+    char neighbors[rooms_count][10];
     for (int i = 0; i < rooms_count; i++)
     {
-        neighbors[i] = (char *)malloc(10);
         memset(neighbors[i], 0, 9);
-        neighbors[0] = '\0';
+        neighbors[i][0] = '\0';
     }
 
     for (int i = 0; i < rooms_count; i++)
     {
-        int distance[rooms_count - 1];
+        int distance[rooms_count];
+        int destination = 10, smaller = 200;
+        int count = 0;
         for (int j = 0; j < rooms_count; j++)
         {
-            if (j < i)
-                distance[j] = abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[j].x + (rooms[j].w / 2))) + 2 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[j].y + (rooms[j].h / 2)));
-            else if (j > i)
-                distance[j - 1] = abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[j].x + (rooms[j].w / 2))) + 2 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[j].y + (rooms[j].h / 2)));
+            if (j == i)
+            {
+                distance[j] = 0;
+                continue;
+            }
+
+            distance[j] = abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[j].x + (rooms[j].w / 2))) + 2 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[j].y + (rooms[j].h / 2)));
+            if (distance[j] < 60)
+                count++;
+            if (distance[j] < smaller)
+            {
+                smaller = distance[j];
+                destination = j;
+            }
         }
+
+        if (count != 0)
+        {
+            int nei[count], min = count, temp = 0;
+            if (rooms[i].door < count)
+                min = rooms[i].door;
+
+            for (int j = 0; j < rooms_count; j++)
+                if (distance[j] < 80 && distance[j])
+                    nei[temp++] = j;
+
+            // sort
+
+            // for (int k = 0; k < count - 1; k++)
+            //     for (int l = k + 1; l < count; l++)
+            //         if (strlen(neighbors[nei[l]]) < strlen(neighbors[nei[k]]))
+            //         {
+            //             int tttt = nei[k];
+            //             nei[k] = nei[l];
+            //             nei[l] = tttt;
+            //         }
+
+            for (int k = 0; k < count - 1; k++)
+                for (int l = k + 1; l < count; l++)
+                    if (distance[l] < distance[k])
+                    {
+                        int tttt = nei[k];
+                        nei[k] = nei[l];
+                        nei[l] = tttt;
+                    }
+
+            for (int j = strlen(neighbors[i]); j < min; j++)
+            {
+                if (strchr(neighbors[i], (char)(nei[j] + '0')) == NULL)
+                {
+                    neighbors[i][strlen(neighbors[i])] = (char)(nei[j] + '0');
+                    neighbors[i][strlen(neighbors[i])] = '\0';
+                }
+                if (strchr(neighbors[nei[j]], (char)(i + '0')) == NULL)
+                {
+                    neighbors[nei[j]][strlen(neighbors[nei[j]])] = (char)(i + '0');
+                    neighbors[nei[j]][strlen(neighbors[nei[j]])] = '\0';
+                }
+            }
+        }
+        else
+        {
+            if (strchr(neighbors[i], (char)(destination + '0')) == NULL)
+            {
+                neighbors[i][strlen(neighbors[i])] = (char)(destination + '0');
+                neighbors[i][strlen(neighbors[i])] = '\0';
+            }
+            if (strchr(neighbors[destination], (char)(i + '0')) == NULL)
+            {
+                neighbors[destination][strlen(neighbors[destination])] = (char)(i + '0');
+                neighbors[destination][strlen(neighbors[destination])] = '\0';
+            }
+        }
+        fprintf(write, "%d = {%s}\n", i, neighbors[i]);
     }
+    fclose(write);
 }
 
 void generate_map(char username[MAX_NAMES])
