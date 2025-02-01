@@ -507,17 +507,14 @@ char *decrypt(char buffer[1024], char key[512])
     return encMsg;
 }
 
-int sdfa()
-{
-    return 1;
-}
-
 int main()
 {
-    int moed;
-    if ((moed = sdfa()))
-    {
-        printf("%d\n", moed);
-    }
+    char path[MAX_LINE];
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/~GUEST");
+    puts(path);
+    memset(path, 0, sizeof(path));
+    sprintf(path, "hello");
+    puts(path);
     return 0;
 }

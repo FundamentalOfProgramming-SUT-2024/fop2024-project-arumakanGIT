@@ -1643,7 +1643,6 @@ int RegisterMenu()
     }
 
     struct dirent *input;
-    FILE *fileinput;
     int users = 0;
 
     while ((input = readdir(dir)) != NULL)

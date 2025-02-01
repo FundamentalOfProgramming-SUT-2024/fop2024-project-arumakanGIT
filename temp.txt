@@ -1,4 +1,4 @@
-gcc Rogue.c -lncursesw -lSDL2 -lSDL2_mixer
+gcc Rogue.c -lncursesw -lSDL2 -lSDL2_mixer mf.a
 
 📊 پیشنهاد XP برای فعالیت‌های مختلف در Rogue
 فعالیت مقدار 					XP پیشنهادی				توضیح
