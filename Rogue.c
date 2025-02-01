@@ -134,7 +134,7 @@ void generate_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], i
 
         for (int j = 0; j < rooms_count; j++)
         {
-            distance[j] = abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[j].x + (rooms[j].w / 2))) + 2 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[j].y + (rooms[j].h / 2)));
+            distance[j] = abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[j].x + (rooms[j].w / 2))) + 3 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[j].y + (rooms[j].h / 2)));
             if (distance[j] < 60)
                 neighbors[j] = 1;
         }
