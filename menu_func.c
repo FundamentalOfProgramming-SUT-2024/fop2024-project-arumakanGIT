@@ -18,7 +18,6 @@
 #define MAX_LINE 1024
 #define LIMIT_INPUT 25
 
-
 void remove_dir(const char *path)
 {
     struct dirent *entry;
@@ -463,7 +462,10 @@ void UseColor()
         init_color(10, 750, 750, 750);
         init_color(11, 804, 498, 196);
         init_color(12, 381, 201, 30);
-        init_color(13, 347, 112, 419);
+        // init_color(13, 347, 112, 419);
+        // init_color(13, 108, 59, 170);
+        init_color(13, 163, 121, 217);
+        // init_color(13, 84, 17, 171);
         init_color(14, 0, 387, 0);
     }
 

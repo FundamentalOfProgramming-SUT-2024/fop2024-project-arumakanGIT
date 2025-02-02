@@ -25,6 +25,56 @@
 #define MAX_LINE 1024
 #define LIMIT_INPUT 25
 
+/*
+void EditGamesInfo(char username[MAX_NAMES])
+{
+    FILE *read;
+    read = fopen("./.users/Login.txt", "r");
+    int users_count;
+    fscanf(read, "%d\n", &users_count);
+    int target_index;
+    char names[users_count][MAX_NAMES], password[users_count][MAX_NAMES], email[users_count][MAX_NAMES];
+    for (int i = 0; i < users_count; i++)
+    {
+        fscanf(read, "%s %s %s\n", names[i], password[i], email[i]);
+        if (strcmp(names[i], username) == 0)
+            target_index = i;
+    }
+    fclose(read);
+
+    FILE *write;
+    write = fopen("./.users/Login.txt", "w");
+    fprintf(write, "%d\n", users_count);
+    fprintf(write, "%s %s %s\n", names[target_index], password[target_index], email[target_index]);
+    for (int i = 0; i < users_count; i++)
+        if (i != target_index)
+            fprintf(write, "%s %s %s\n", names[i], password[i], email[i]);
+    fclose(write);
+}
+*/
+
+/*
+void addToLogin(char username[MAX_NAMES], char password[MAX_NAMES], char email[MAX_NAMES])
+{
+    FILE *read;
+    read = fopen("./.users/Login.txt", "r");
+    int users_count;
+    fscanf(read, "%d\n", &users_count);
+    char un[users_count][MAX_NAMES], pw[users_count][MAX_NAMES], em[users_count][MAX_NAMES];
+    for (int i = 0; i < users_count; i++)
+        fscanf(read, "%s %s %s\n", un[i], pw[i], em[i]);
+    fclose(read);
+
+    FILE *write;
+    write = fopen("./.users/Login.txt", "w");
+    fprintf(write, "%d\n", users_count + 1);
+    fprintf(write, "%s %s %s\n", username, encrypt(password, username), email);
+    for (int i = 0; i < users_count; i++)
+        fprintf(write, "%s %s %s\n", un[i], pw[i], em[i]);
+    fclose(write);
+}
+*/
+
 // ʘ
 // ۩
 // ߷
@@ -82,8 +132,11 @@ typedef struct Room
     int w;
     int visible;
     int kind;
-    int door;
     int secretDoor;
+    int top_door;
+    int down_door;
+    int right_door;
+    int left_door;
 } Room;
 
 typedef struct Floor
@@ -93,94 +146,195 @@ typedef struct Floor
     Room *rooms;
 } Floor;
 
-void printRoom(int Y_padding, int X_padding, int h, int w)
+typedef struct cell
 {
-    char line[w + 1], row[w + 1], dots[w - 1];
-    line[w] = '\0';
-    row[w] = '\0';
-    dots[w - 2] = '\0';
-    memset(line, '-', w);
-    memset(row, ' ', w);
-    memset(dots, '.', w - 2);
-    row[0] = '|';
-    row[w - 1] = '|';
+    int x;
+    int y;
+    int v;
+    struct cell *next;
+} cell;
 
-    attron(COLOR_PAIR(13));
-    mvprintw(Y_padding, X_padding, "%s", line);
-    mvprintw(Y_padding + h, X_padding, "%s", line);
+void add_to_corridor(cell **corridor, int x, int y, int visible)
+{
+    cell *newNum = (cell *)malloc(sizeof(cell));
+    newNum->x = x;
+    newNum->y = y;
+    newNum->v = visible;
+    newNum->next = NULL;
+}
+
+void printRoom(int kind, int Y_padding, int X_padding, int h, int w)
+{
+    char line_down[7], line_top[7], right_down[7], row_left[7], row_right[7], right_top[7], left_top[7], left_down[7], dots[w - 1];
+    dots[w - 2] = '\0';
+    memset(dots, '.', w - 2);
+
+    strcpy(right_top, "\u2596");
+    strcpy(left_top, "\u2597");
+    strcpy(right_down, "\u2598");
+    strcpy(left_down, "\u259D");
+
+    strcpy(row_left, "\u2590");
+    strcpy(row_right, "\u258C");
+
+    strcpy(line_top, "\u2580");
+    strcpy(line_down, "\u2584");
+
+    init_pair(14, COLOR_GREEN, COLOR_BLACK);
+    attron(COLOR_PAIR(13 + kind));
+
+    mvprintw(Y_padding, X_padding + w, "%s", right_top);
+    for (int j = 0; j < w; j++)
+    {
+        mvprintw(Y_padding, X_padding + j, "%s", line_down);
+        mvprintw(Y_padding + h, X_padding + j, "%s", line_top);
+    }
+    mvprintw(Y_padding + h, X_padding + w, "%s", right_down);
+
     for (int i = Y_padding + 1; i < Y_padding + h; i++)
-        mvprintw(i, X_padding, "%s", row);
-    attroff(COLOR_PAIR(13));
-    // init_pair(14, 8, COLOR_WHITE);
+    {
+        mvprintw(i, X_padding, "%s", row_right);
+        mvprintw(i, X_padding + w, "%s", row_right);
+    }
+    attroff(COLOR_PAIR(13 + kind));
     attron(COLOR_PAIR(8));
     for (int i = Y_padding + 1; i < Y_padding + h; i++)
         mvprintw(i, X_padding + 1, "%s", dots);
     attroff(COLOR_PAIR(8));
 }
 
-void generate_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor)
+void print_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor)
+{
+    char path[MAX_NAMES];
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d", username, floor);
+    FILE *read_file = fopen(path, "r");
+    char line[MAX_LINE];
+    while (fgets(line, sizeof(line), read_file))
+    {
+        int org = (int)line[0];
+        int des = (int)line[2];
+        int org_ox = rooms[org].x + (rooms[org].w / 2);
+        int org_oy = rooms[org].y + (rooms[org].h / 2);
+        int des_ox = rooms[des].x + (rooms[des].w / 2);
+        int des_oy = rooms[des].y + (rooms[des].h / 2);
+
+        if (rooms[org].x + (rooms[des].w / 2) < des_ox && rooms[org].y + (rooms[des].h / 2) < des_oy)
+        {
+            int door = random_num(0, 1);
+            int orgDoor_x = rooms[org].x + rooms[org].top_door;
+            int orgDoor_y = rooms[org].y;
+            int desDoor_x = rooms[des].x + rooms[des].top_door;
+            int desDoor_y = rooms[des].y;
+            if (door)
+            {
+                orgDoor_x = rooms[org].w + rooms[org].x;
+                orgDoor_y = rooms[org].y + rooms[org].right_door;
+            }
+            door = random_num(0, 1);
+            if (door)
+            {
+                desDoor_x = rooms[des].x;
+                desDoor_y = rooms[des].y + rooms[des].left_door;
+            }
+
+            while (orgDoor_x != desDoor_x && orgDoor_y != desDoor_y)
+            {
+            }
+        }
+        else if (rooms[org].x + (rooms[des].w / 2) > des_ox && rooms[org].y + (rooms[des].h / 2) < des_oy)
+        {
+        }
+        else if (rooms[org].x + (rooms[des].w / 2) > des_ox && rooms[org].y + (rooms[des].h / 2) > des_oy)
+        {
+        }
+        else if (rooms[org].x + (rooms[des].w / 2) < des_ox && rooms[org].y + (rooms[des].h / 2) > des_oy)
+        {
+        }
+        else if (rooms[org].y + (rooms[des].h / 2) < des_oy)
+        {
+        }
+        else if (rooms[org].y + (rooms[des].h / 2) > des_oy)
+        {
+        }
+        else if (rooms[org].x + (rooms[des].w / 2) < des_ox)
+        {
+        }
+        else if (rooms[org].x + (rooms[des].w / 2) > des_ox)
+        {
+        }
+    }
+}
+
+void dfs(int **neighbors, int *visited, int n, int node)
+{
+    visited[node] = 1;
+    for (int i = 0; i < n; i++)
+        if (neighbors[node][i] && !visited[i])
+            dfs(neighbors, visited, n, i);
+}
+
+int generate_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor)
 {
     char path[MAX_LINE];
     sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d.txt", username, floor);
     FILE *write = fopen(path, "w");
-    fprintf(write, "%d\n", rooms_count);
+    // fprintf(write, "%d\n", rooms_count);
+
+    // int neighbors[rooms_count][rooms_count];
+
+    int **neighbors = (int **)malloc(rooms_count * sizeof(int *));
+    for (int i = 0; i < rooms_count; i++)
+        neighbors[i] = (int *)calloc(rooms_count, sizeof(int));
+
+    for (int i = 0; i < rooms_count; i++)
+        for (int j = 0; j < rooms_count; j++)
+            neighbors[i][j] = 0;
 
     for (int i = 0; i < rooms_count; i++)
     {
-        int neighbors[rooms_count], distance[rooms_count];
-
-        for (int i = 0; i < rooms_count; i++)
-            neighbors[i] = 0;
-
-        for (int j = 0; j < rooms_count; j++)
+        for (int k = 0; k < rooms_count; k++)
         {
-            distance[j] = abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[j].x + (rooms[j].w / 2))) + 3 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[j].y + (rooms[j].h / 2)));
-            if (distance[j] < 60)
-                neighbors[j] = 1;
+            if (i < k && abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[k].x + (rooms[k].w / 2))) + (3 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[k].y + (rooms[k].h / 2)))) < 55)
+            {
+                neighbors[i][k] = 1;
+                neighbors[k][i] = 1;
+                fprintf(write, "%d %d\n", i, k);
+            }
         }
-
-        for (int i = 0; i < rooms_count; i++)
-            if (neighbors[i])
-                fprintf(write, "%d ", i);
-        fprintf(write, "\n");
     }
     fclose(write);
+
+    int *visited = (int *)calloc(rooms_count, sizeof(int));
+
+    dfs(neighbors, visited, rooms_count, 0);
+
+    int is_connected = 1;
+    for (int i = 0; i < rooms_count; i++)
+        if (!visited[i])
+        {
+            is_connected = 0;
+            break;
+        }
+
+    free(visited);
+    for (int i = 0; i < rooms_count; i++)
+        free(neighbors[i]);
+    free(neighbors);
+
+    return is_connected;
 }
 
-void generate_map(char username[MAX_NAMES])
+void generate_map(char username[MAX_NAMES], int p)
 {
-    int padding = 2;
-    char path[MAX_LINE];
-    sprintf(path, "./.users/%s/~NEW_GAME", username);
-    mkdir(path, 0777);
+    int padding = 3, rooms_count;
+    Room *rooms;
 
-    int difficulty;
-    memset(path, 0, sizeof(path));
-    sprintf(path, "./.users/%s/GameSetting.txt", username);
-    FILE *rgs = fopen(path, "r");
-    fscanf(rgs, "%d\n%*d\n%*d\n%*d", &difficulty);
-
-    int floor;
-    if (difficulty == 0)
-        floor = 4;
-    else if (difficulty == 1)
-        floor = random_num(5, 6);
-    else if (difficulty == 2)
-        floor = 7;
-    else if (difficulty == 3)
-        floor = 1;
-
-    Floor *floors = (Floor *)malloc(sizeof(Floor) * floor);
-
-    // Create Floor
-    for (int i = 0; i < floor; i++)
+    while (1)
     {
-        memset(path, 0, sizeof(path));
-        sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, i);
-        FILE *write_floor = fopen(path, "w");
-
-        int rooms_count = random_num(6, 8);
-        Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+        // Create Floor
+        rooms_count = random_num(6, 8);
+        rooms = (Room *)malloc(sizeof(Room) * rooms_count);
 
         // Create Rooms
         for (int i = 0; i < rooms_count; i++)
@@ -215,27 +369,27 @@ void generate_map(char username[MAX_NAMES])
 
             rooms[i].visible = 0;
             rooms[i].kind = 0;
-            rooms[i].door = random_num(1, 3);
-            if (rooms[i].door == 1)
-                rooms[i].secretDoor = random_num(0, 1);
-            else
-                rooms[i].secretDoor = 0;
+            rooms[i].top_door = random_num(0, rooms[i].w - 2);
+            rooms[i].down_door = random_num(0, rooms[i].w - 2);
+            rooms[i].right_door = random_num(0, rooms[i].h - 2);
+            rooms[i].left_door = random_num(0, rooms[i].h - 2);
+            rooms[i].secretDoor = 0;
         }
 
-        fprintf(write_floor, "%d\n", rooms_count);
-        for (int k = 0; k < rooms_count; k++)
-            fprintf(write_floor, "%d %d %d %d %d %d %d %d\n", rooms[k].x, rooms[k].y, rooms[k].h, rooms[k].w, rooms[k].visible, rooms[k].kind, rooms[k].door, rooms[k].secretDoor);
-        fclose(write_floor);
-
-        floors[i].rooms_count = rooms_count;
-        floors[i].rooms = rooms;
-        floors[i].f = i + 1;
-
-#pragma region generate corridor
-        // generate_corridor(rooms_count, rooms, username);
+        if (generate_corridor(rooms_count, rooms, username, p))
+            break;
         free(rooms);
     }
-    free(floors);
+
+    char path[MAX_LINE];
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, p);
+    FILE *write_floor = fopen(path, "w");
+    fprintf(write_floor, "%d\n", rooms_count);
+    for (int k = 0; k < rooms_count; k++)
+        fprintf(write_floor, "%d %d %d %d %d %d %d %d %d %d %d\n", rooms[k].x, rooms[k].y, rooms[k].h, rooms[k].w, rooms[k].visible, rooms[k].kind, rooms[k].top_door, rooms[k].down_door, rooms[k].right_door, rooms[k].left_door, rooms[k].secretDoor);
+    fclose(write_floor);
+    free(rooms);
 }
 
 void New_Game(int user_mode, char username[MAX_NAMES])
@@ -247,57 +401,58 @@ void New_Game(int user_mode, char username[MAX_NAMES])
 
     char path[MAX_LINE];
     int ch, p = 0;
-
     memset(path, 0, sizeof(path));
     sprintf(path, "./.users/%s/~NEW_GAME", username);
-    DIR *dir = opendir(path);
 
-    if (!dir)
+    if (access(path, F_OK) != 0)
     {
+        DIR *dir = opendir(path);
         mkdir(path, 0777);
-        generate_map(username);
-        dir = opendir(path);
-    }
+        closedir(dir);
 
-    struct dirent *input;
-    int floor = 0;
-
-    while ((input = readdir(dir)) != NULL)
-    {
-        if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
-            continue;
-        floor++;
-    }
-
-    while (1)
-    {
-        clear();
-        refresh();
+        int difficulty;
         memset(path, 0, sizeof(path));
-        sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, p);
-        FILE *read_floor = fopen(path, "r");
-        int rooms_count;
-        fscanf(read_floor, "%d\n", &rooms_count);
+        sprintf(path, "./.users/%s/GameSetting.txt", username);
+        FILE *rgs = fopen(path, "r");
+        fscanf(rgs, "%d\n%*d\n%*d\n%*d", &difficulty);
+        fclose(rgs);
 
-        Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
-        for (int i = 0; i < rooms_count; i++)
+        int floor;
+        if (difficulty == 0)
+            floor = 4;
+        else if (difficulty == 1)
+            floor = random_num(5, 6);
+        else if (difficulty == 2)
+            floor = 7;
+        else if (difficulty == 3)
+            floor = 1;
+
+        attron(COLOR_PAIR(9) | A_BOLD);
+        mvprintw(dy - 3, dx - 22, "Wizards are writing the fate of this land..");
+        attroff(COLOR_PAIR(9) | A_BOLD);
+
+        attron((COLOR_PAIR(9) | A_BOLD | A_BLINK));
+        mvprintw(dy - 3, dx + 21, ".");
+        attroff((COLOR_PAIR(9) | A_BOLD | A_BLINK));
+
+        attron(COLOR_PAIR(8));
+        printBoard(0, 0, 3, 2 * (floor + 3));
+        attroff(COLOR_PAIR(8));
+
+        attron(COLOR_PAIR(13));
+        mvprintw(dy + 3, dx - 13, "Please wait a few moments!");
+        attroff(COLOR_PAIR(13));
+
+        refresh();
+
+        for (int i = 0; i < floor; i++)
         {
-            fscanf(read_floor, "%d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].door, &rooms[i].secretDoor);
-            printRoom(rooms[i].y, rooms[i].x, rooms[i].h, rooms[i].w);
-            mvprintw(rooms[i].y + (rooms[i].h / 2), rooms[i].x + (rooms[i].w / 2), "%d", i);
+            mvprintw(dy, dx - floor + ((i - 1) * 2), "\U0001F7E7");
+            refresh();
+            generate_map(username, i);
         }
-
-        generate_corridor(rooms_count, rooms, username, p);
-
-        ch = getch();
-
-        if (ch == 'q')
-            break;
-        else if (ch == KEY_UP)
-            p = (p + floor - 1) % floor;
-        else if (ch == KEY_DOWN)
-            p = (p + 1) % floor;
     }
+
     clear();
     refresh();
     flushinp();
@@ -342,6 +497,83 @@ void mv(int user_mode)
         else if (ch == 'q')
             break;
     }
+}
+
+void start_game(int user_mode)
+{
+    UseColor();
+    int scrY, scrX;
+    getmaxyx(stdscr, scrY, scrX);
+    int dx = scrX / 2, dy = scrY / 2;
+
+    FILE *read_for_username = fopen("./.users/Login.txt", "r");
+    char username[MAX_NAMES];
+    fscanf(read_for_username, "%*d\n%s", username);
+    fclose(read_for_username);
+
+    int floors = 0;
+    char path[MAX_LINE];
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME", username);
+    if (access(path, F_OK) == 0)
+    {
+        DIR *readFLoor = opendir(path);
+        readFLoor = opendir(path);
+
+        struct dirent *input;
+
+        while ((input = readdir(readFLoor)) != NULL)
+        {
+            if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
+                continue;
+            floors++;
+        }
+
+        floors = floors / 2;
+    }
+    else
+    {
+        clear();
+        refresh();
+        flushinp();
+        New_Game(user_mode, username);
+        start_game(user_mode);
+        return;
+    }
+
+    int ch, p = 0;
+
+    while (1)
+    {
+        clear();
+        refresh();
+        mvprintw(0, dx, "%d", p + 1);
+        memset(path, 0, sizeof(path));
+        sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, p);
+        FILE *read_floor = fopen(path, "r");
+        int rooms_count;
+        fscanf(read_floor, "%d\n", &rooms_count);
+
+        Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+        for (int i = 0; i < rooms_count; i++)
+        {
+            fscanf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].secretDoor);
+            printRoom(rooms[i].kind, rooms[i].y, rooms[i].x, rooms[i].h, rooms[i].w);
+            // mvprintw(rooms[i].y + (rooms[i].h / 2), rooms[i].x + (rooms[i].w / 2), "%d", i);
+        }
+
+        ch = getch();
+
+        if (ch == 'q')
+            break;
+        else if (ch == KEY_UP)
+            p = (p + floors - 1) % floors;
+        else if (ch == KEY_DOWN)
+            p = (p + 1) % floors;
+    }
+    clear();
+    refresh();
+    flushinp();
 }
 
 int user_menu(int user_mode)
@@ -414,11 +646,6 @@ int user_menu(int user_mode)
                     refresh();
                     flushinp();
                     New_Game(user_mode, username);
-                    // mv(user_mode);
-                    if (user_menu(user_mode))
-                        return 1;
-                    else
-                        return 0;
                     return 1;
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
@@ -604,8 +831,10 @@ int main()
     int user_mode;
     while (user_mode = RegisterMenu())
     {
-        if (!user_menu(user_mode))
-            continue;
+        while (user_menu(user_mode))
+        {
+            start_game(user_mode);
+        }
     }
 
     // SDL_Quit();
