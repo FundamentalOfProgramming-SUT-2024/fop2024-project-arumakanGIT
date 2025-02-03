@@ -304,20 +304,35 @@ void printBoard(int Ypadding, int Xpadding, int h, int w)
     getmaxyx(stdscr, scrY, scrX);
     int x = scrX / 2, y = scrY / 2;
 
-    char line[w + 1], row[w + 1];
-    line[w] = '\0';
-    row[w] = '\0';
-    memset(line, '-', w);
-    memset(row, ' ', w);
+    char line[7], row[7];
+    char up_left[7], up_right[7];
+    char down_left[7], down_right[7];
 
-    row[0] = '|';
-    row[w - 1] = '|';
+    strcpy(line, "\u2501");
+    strcpy(row, "\u2503");
 
-    mvprintw(y - (h / 2) + Ypadding, x - (w / 2) + Xpadding, "%s", line);
-    mvprintw(y - (h / 2) + Ypadding + h - 1, x - (w / 2) + Xpadding, "%s", line);
+    strcpy(up_right, "\u2513");
+    strcpy(up_left, "\u250F");
+
+    strcpy(down_right, "\u251B");
+    strcpy(down_left, "\u2517");
+
+    mvprintw(y - (h / 2) + Ypadding, x - (w / 2) + Xpadding, "%s", up_left);
+    mvprintw(y - (h / 2) + Ypadding, x - (w / 2) + Xpadding + w - 1, "%s", up_right);
+    for (int i = 1; i < w - 1; i++)
+    {
+        mvprintw(y - (h / 2) + Ypadding, x - (w / 2) + Xpadding + i, "%s", line);
+        mvprintw(y - (h / 2) + Ypadding + h - 1, x - (w / 2) + Xpadding + i, "%s", line);
+    }
+    mvprintw(y - (h / 2) + Ypadding + h - 1, x - (w / 2) + Xpadding, "%s", down_left);
+    mvprintw(y - (h / 2) + Ypadding + h - 1, x - (w / 2) + Xpadding + w - 1, "%s", down_right);
+
     int yy = y - (h / 2) + Ypadding + 1;
     for (int i = 0; i < h - 2; i++)
+    {
         mvprintw(yy + i, x - (w / 2) + Xpadding, "%s", row);
+        mvprintw(yy + i, x - (w / 2) + Xpadding + w - 1, "%s", row);
+    }
 }
 
 void EditUserInfo(char username[MAX_NAMES])
@@ -2477,9 +2492,10 @@ void profile_menu(int user_mode, char username[MAX_NAMES])
 
     sortLB();
 
-    char line[71];
-    line[70] = '\0';
-    memset(line, '-', 70);
+    char line[7], right[7], left[7];
+    strcpy(left, "\u2523");
+    strcpy(right, "\u252B");
+    strcpy(line, "\u2501");
 
     char *characters[5] = {"A", "ᛟ", "ᛸ", "\u2B55", "\U0001F7E5"};
     char *u26AA[6] = {"\u2B55", "\U0001F7E2", "\U0001F535", "\U0001F7E0", "\U0001F7E4", "\U0001F7E3"};
@@ -2572,7 +2588,14 @@ void profile_menu(int user_mode, char username[MAX_NAMES])
 
     attron(COLOR_PAIR(8));
     printBoard(-1, 0, 17, 70);
-    mvprintw(y - 1, x - (strlen(line) / 2), "%s", line);
+
+    int xx = x - 35;
+
+    mvprintw(y - 1, xx, "%s", left);
+    for (int i = 1; i < 69; i++)
+        mvprintw(y - 1, xx + i, "%s", line);
+    mvprintw(y - 1, xx + 69, "%s", right);
+
     printBoard(-5, -28, 7, 11);
     attroff(COLOR_PAIR(8));
     attron(COLOR_PAIR(9) | A_BOLD);
