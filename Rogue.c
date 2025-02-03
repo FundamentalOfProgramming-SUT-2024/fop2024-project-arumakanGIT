@@ -234,16 +234,26 @@ void add_door_to_room(char username[MAX_NAMES], int floor, int room, int door)
     memset(path, 0, sizeof(path));
     sprintf(path, "./.users/%s/~NEW_GAME/floor_%d", username, floor);
     FILE *read = fopen(path, "r");
-    fscanf(read, "%*d\n");
-    for (int i = 0; i < room; i++)
-        fscanf(read, "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d\n");
     int vd[4];
-    fscanf(read, "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %d %d %d %d\n", &vd[0], &vd[1], &vd[2], &vd[3]);
+    int rooms_count;
+    fscanf(read, "%d\n", &rooms_count);
+    Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+    for (int i = 0; i < room; i++)
+    {
+        fscanf(read, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
+        if (i == room)
+        {
+            vd[0] = rooms[i].tv;
+            vd[1] = rooms[i].dv;
+            vd[2] = rooms[i].rv;
+            vd[3] = rooms[i].lv;
+        }
+    }
     if (!vd[door])
         vd[door]++;
     fclose(read);
 
-    FILE *write = fopen(path, "r+");
+    FILE *write = fopen(path, "w");
     fscanf(write, "%*d\n");
     for (int i = 0; i < room; i++)
         fscanf(read, "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d\n");
