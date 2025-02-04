@@ -5,7 +5,6 @@
 #define MAX_LINE 1024
 
 void remove_dir(const char *path);
-char *setare(char buffer[MAX_NAMES]);
 void delay(int milli_seconds);
 int random_num(int min, int max);
 char *random_pass();
@@ -30,8 +29,8 @@ int log_in();
 int add_New_User();
 int login_guest();
 int RegisterMenu();
-void printTable(int big, int x, int y, int users_count, char line[MAX_LINE], char row[MAX_LINE]);
-void clearTable(int big, int y, int x, char line[MAX_LINE], char row[MAX_LINE]);
+void printTable(int big, int x, int y, int users_count, int tabs[]);
+void clearTable(int big, int x, int y, int tabs[], char spaces[][MAX_NAMES], int users_count);
 void leaderBoard(char username[MAX_NAMES]);
 void game_setting(int user_mode, char username[MAX_NAMES]);
 void sortLB();

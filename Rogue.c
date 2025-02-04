@@ -1247,35 +1247,21 @@ void dfs(int **neighbors, int *visited, int n, int node)
             dfs(neighbors, visited, n, i);
 }
 
+/*
 int generate_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor)
 {
-    char path[MAX_LINE];
-    sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d.txt", username, floor);
-    FILE *write = fopen(path, "w");
-    // fprintf(write, "%d\n", rooms_count);
-
-    // int neighbors[rooms_count][rooms_count];
-
     int **neighbors = (int **)malloc(rooms_count * sizeof(int *));
     for (int i = 0; i < rooms_count; i++)
         neighbors[i] = (int *)calloc(rooms_count, sizeof(int));
 
     for (int i = 0; i < rooms_count; i++)
-        for (int j = 0; j < rooms_count; j++)
-            neighbors[i][j] = 0;
-
-    for (int i = 0; i < rooms_count; i++)
-    {
         for (int k = 0; k < rooms_count; k++)
-        {
             if (i < k && abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[k].x + (rooms[k].w / 2))) + (3 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[k].y + (rooms[k].h / 2)))) < 55)
             {
                 neighbors[i][k] = 1;
                 neighbors[k][i] = 1;
-                fprintf(write, "%d %d\n", i, k);
             }
-        }
-    }
+
     fclose(write);
 
     int *visited = (int *)calloc(rooms_count, sizeof(int));
@@ -1297,67 +1283,270 @@ int generate_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], in
 
     return is_connected;
 }
+*/
 
 void generate_map(char username[MAX_NAMES], int p)
 {
     int padding = 3, rooms_count;
     Room *rooms;
+    char path[MAX_LINE];
 
-    while (1)
+    // Create Floor
+    // while (1)
+    // {
+    sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d.txt", username, p);
+    FILE *write = fopen(path, "w");
+
+    // Create First Room
+    rooms_count = random_num(6, 7);
+    // printw("floor %d, rooms_count = %d", p, rooms_count);
+    rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+
+    rooms[0].h = random_num(4, 6);
+    rooms[0].w = random_num(12, 25);
+
+    rooms[0].x = random_num(10, 144 - rooms[0].w);
+    rooms[0].y = random_num(3, 36 - rooms[0].h - 1);
+
+    rooms[0].visible = 0;
+    rooms[0].kind = 0;
+    rooms[0].top_door = random_num(0, rooms[0].w - 2);
+    rooms[0].down_door = random_num(0, rooms[0].w - 2);
+    rooms[0].right_door = random_num(0, rooms[0].h - 2);
+    rooms[0].left_door = random_num(0, rooms[0].h - 2);
+    rooms[0].tv = 0;
+    rooms[0].dv = 0;
+    rooms[0].rv = 0;
+    rooms[0].lv = 0;
+
+    // printRoom(rooms[0]);
+
+    int child = random_num(2, 3);
+    // printw(" --- rooms[0].h = %d, rooms[0].w = %d, rooms[0].x = %d, rooms[0].y = %d, rooms[0] child = %d\n", rooms[0].h, rooms[0].w, rooms[0].x, rooms[0].y, child);
+
+    // Create Child Rooms
+    for (int i = 1; i <= child; i++)
     {
-        // Create Floor
-        rooms_count = random_num(6, 8);
-        rooms = (Room *)malloc(sizeof(Room) * rooms_count);
-
-        // Create Rooms
-        for (int i = 0; i < rooms_count; i++)
+        fprintf(write, "0 %d\n", i);
+        int resize = 6;
+        while (1)
         {
-            int resize = 0;
-
-            rooms[i].h = random_num(4 + (i / 2), 6 + i);
-            rooms[i].w = random_num(12 + i, 25);
-
-            while (1)
+            if (resize > 5)
             {
-                if (resize > 6)
-                {
-                    rooms[i].h = random_num(4 + (i / 2), 6 + i);
-                    rooms[i].w = random_num(12 + i, 25);
-                    resize = 0;
-                }
-
-                // باید هرچقد میتونم تعداد دورهاش رو کمتر کنم
-                rooms[i].x = random_num(10, 144 - rooms[i].w);
-                rooms[i].y = random_num(3, 36 - rooms[i].h - 1);
-                int check = 1;
-                for (int j = 0; j < i && check; j++)
-                    if (rooms[i].x >= rooms[j].x - padding - rooms[i].w - 1 && rooms[i].x <= rooms[j].x + rooms[j].w + padding && rooms[i].y >= rooms[j].y - padding - rooms[i].h - 1 && rooms[i].y <= rooms[j].y + rooms[j].h + padding)
-                        check = 0;
-
-                if (check)
-                    break;
-                else
-                    resize++;
+                rooms[i].h = random_num(4 + (i / 2), 6 + i);
+                rooms[i].w = random_num(12 + i, 25);
+                resize = 0;
             }
 
-            rooms[i].visible = 0;
-            rooms[i].kind = 0;
-            rooms[i].top_door = random_num(0, rooms[i].w - 2);
-            rooms[i].down_door = random_num(0, rooms[i].w - 2);
-            rooms[i].right_door = random_num(0, rooms[i].h - 2);
-            rooms[i].left_door = random_num(0, rooms[i].h - 2);
-            rooms[i].tv = 0;
-            rooms[i].dv = 0;
-            rooms[i].rv = 0;
-            rooms[i].lv = 0;
+            int min_x = 10;
+            int nmin_x = rooms[0].x + (rooms[0].w / 2) - 30 - (rooms[i].w / 2);
+            if (nmin_x > 10)
+                min_x = nmin_x;
+
+            int max_x = 144 - rooms[i].w;
+            int nmax_x = rooms[0].x + (rooms[0].w / 2) + 30 - (rooms[i].w / 2);
+            if (nmax_x < max_x)
+                max_x = nmax_x;
+
+            if (i == 2)
+                if (rooms[1].x + (rooms[1].w / 2) > rooms[0].x + (rooms[0].w / 2))
+                {
+                    nmax_x = (rooms[0].x - 10);
+                    if (nmax_x > rooms[1].w + padding)
+                        max_x = nmax_x;
+                }
+                else
+                {
+                    if (nmin_x = (144 - rooms[0].x) > rooms[1].w + padding)
+                        min_x = nmin_x;
+                }
+
+            int min_y = 3;
+            int nmin_y;
+            if ((nmin_y = rooms[0].y + (rooms[0].h / 2) - 15 - (rooms[i].h / 2)) > 3)
+                min_y = nmin_y;
+
+            int max_y = 36 - rooms[i].h - 1;
+            int nmax_y;
+            if ((nmax_y = rooms[0].y + (rooms[0].h / 2) + 15 - (rooms[i].h / 2)) < max_y)
+                max_y = nmax_y;
+
+            rooms[i].x = random_num(min_x, max_x);
+            rooms[i].y = random_num(min_y, max_y);
+
+            // printw(" --- %d : h = %d, w = %d, x = %d, y = %d, min_x = %d, max_x = %d, min_y = %d, max_y = %d", i, rooms[i].h, rooms[i].w, rooms[i].x, rooms[i].y, min_x, max_x, min_y, max_y);
+
+            int check = 1;
+            for (int j = 0; j < i && check; j++)
+                if (rooms[i].x >= rooms[j].x - padding - rooms[i].w - 1 && rooms[i].x <= rooms[j].x + rooms[j].w + padding && rooms[i].y >= rooms[j].y - padding - rooms[i].h - 1 && rooms[i].y <= rooms[j].y + rooms[j].h + padding)
+                    check = 0;
+
+            if (check)
+                break;
+            else
+                resize++;
+
+            // printw(" --- %d : resize++(%d)\n", i, resize);
         }
 
-        if (generate_corridor(rooms_count, rooms, username, p))
-            break;
-        free(rooms);
+        rooms[i].visible = 0;
+        rooms[i].kind = 0;
+        rooms[i].top_door = random_num(0, rooms[i].w - 2);
+        rooms[i].down_door = random_num(0, rooms[i].w - 2);
+        rooms[i].right_door = random_num(0, rooms[i].h - 2);
+        rooms[i].left_door = random_num(0, rooms[i].h - 2);
+        rooms[i].tv = 0;
+        rooms[i].dv = 0;
+        rooms[i].rv = 0;
+        rooms[i].lv = 0;
     }
 
-    char path[MAX_LINE];
+    // printRoom(rooms[1]);
+    // printRoom(rooms[2]);
+
+    // Create Sub Child
+    int subChild[child];
+
+    if (rooms_count == 7 && child == 2)
+        subChild[0] = 2;
+    else if (rooms_count == 7 && child == 3)
+        subChild[0] = 2;
+    else if (rooms_count == 6 && child == 2)
+        subChild[0] = 2;
+    else if (rooms_count == 6 && child == 3)
+        subChild[0] = 1;
+
+    // room[1]
+    for (int l = 1 + child; l < 1 + child + subChild[0]; l++)
+    {
+        // printw(" --- %d : h = %d, w = %d, x = %d, y = %d, min_x = %d, max_x = %d, min_y = %d, max_y = %d", i, rooms[i].h, rooms[i].w, rooms[i].x, rooms[i].y, min_x, max_x, min_y, max_y);
+        fprintf(write, "1 %d\n", l);
+        int resize = 6;
+        while (1)
+        {
+            if (resize > 5)
+            {
+                rooms[l].h = random_num(4 + (l / 2), 6 + l);
+                rooms[l].w = random_num(12 + l, 25);
+                resize = 0;
+            }
+
+            int min_x = 10;
+            int nmin_x;
+            if ((nmin_x = rooms[1].x + (rooms[1].w / 2) - 30 - (rooms[l].w / 2)) > 10)
+                min_x = nmin_x;
+            int max_x = 144 - rooms[l].w;
+            int nmax_x;
+            if ((nmax_x = rooms[1].x + (rooms[1].w / 2) + 30 - (rooms[l].w / 2)) < max_x)
+                max_x = nmax_x;
+
+            int min_y = 3;
+            int nmin_y;
+            if ((nmin_y = rooms[1].y + (rooms[1].h / 2) - 15 - (rooms[l].h / 2)) > 3)
+                min_y = nmin_y;
+
+            int max_y = 36 - rooms[l].h - 1;
+            int nmax_y;
+            if ((nmax_y = rooms[1].y + (rooms[1].h / 2) + 15 - (rooms[l].h / 2)) < max_y)
+                max_y = nmax_y;
+
+            rooms[l].x = random_num(min_x, max_x);
+            rooms[l].y = random_num(min_y, max_y);
+
+            int check = 1;
+            for (int j = 0; j < l && check; j++)
+                if (rooms[l].x >= rooms[j].x - padding - rooms[l].w - 1 && rooms[l].x <= rooms[j].x + rooms[j].w + padding && rooms[l].y >= rooms[j].y - padding - rooms[l].h - 1 && rooms[l].y <= rooms[j].y + rooms[j].h + padding)
+                    check = 0;
+
+            if (check)
+                break;
+            else
+                resize++;
+        }
+
+        rooms[l].visible = 0;
+        rooms[l].kind = 0;
+        rooms[l].top_door = random_num(0, rooms[l].w - 2);
+        rooms[l].down_door = random_num(0, rooms[l].w - 2);
+        rooms[l].right_door = random_num(0, rooms[l].h - 2);
+        rooms[l].left_door = random_num(0, rooms[l].h - 2);
+        rooms[l].tv = 0;
+        rooms[l].dv = 0;
+        rooms[l].rv = 0;
+        rooms[l].lv = 0;
+    }
+
+    // printRoom(rooms[3]);
+
+    // room[2]
+    for (int l = 1 + child + subChild[0]; l < rooms_count; l++)
+    {
+        fprintf(write, "2 %d\n", l);
+        int resize = 6;
+        while (1)
+        {
+            if (resize > 5)
+            {
+                rooms[l].h = random_num(4 + (l / 2), 6 + l);
+                rooms[l].w = random_num(12 + l, 25);
+                resize = 0;
+            }
+
+            int min_x = 10;
+            int nmin_x;
+            if ((nmin_x = rooms[2].x + (rooms[2].w / 2) - 30 - (rooms[l].w / 2)) > 10)
+                min_x = nmin_x;
+            int max_x = 144 - rooms[l].w;
+            int nmax_x;
+            if ((nmax_x = rooms[2].x + (rooms[2].w / 2) + 30 - (rooms[l].w / 2)) < max_x)
+                max_x = nmax_x;
+
+            int min_y = 3;
+            int nmin_y;
+            if ((nmin_y = rooms[2].y + (rooms[2].h / 2) - 15 - (rooms[l].h / 2)) > 3)
+                min_y = nmin_y;
+
+            int max_y = 36 - rooms[l].h - 1;
+            int nmax_y;
+            if ((nmax_y = rooms[2].y + (rooms[2].h / 2) + 15 - (rooms[l].h / 2)) < max_y)
+                max_y = nmax_y;
+
+            rooms[l].x = random_num(min_x, max_x);
+            rooms[l].y = random_num(min_y, max_y);
+
+            int check = 1;
+            for (int j = 0; j < l && check; j++)
+                if (rooms[l].x >= rooms[j].x - padding - rooms[l].w - 1 && rooms[l].x <= rooms[j].x + rooms[j].w + padding && rooms[l].y >= rooms[j].y - padding - rooms[l].h - 1 && rooms[l].y <= rooms[j].y + rooms[j].h + padding)
+                    check = 0;
+
+            if (check)
+                break;
+            else
+                resize++;
+        }
+
+        rooms[l].visible = 0;
+        rooms[l].kind = 0;
+        rooms[l].top_door = random_num(0, rooms[l].w - 2);
+        rooms[l].down_door = random_num(0, rooms[l].w - 2);
+        rooms[l].right_door = random_num(0, rooms[l].h - 2);
+        rooms[l].left_door = random_num(0, rooms[l].h - 2);
+        rooms[l].tv = 0;
+        rooms[l].dv = 0;
+        rooms[l].rv = 0;
+        rooms[l].lv = 0;
+    }
+
+    // printRoom(rooms[5]);
+    // printRoom(rooms[4]);
+    // if (rooms_count == 7)
+    // printRoom(rooms[6]);
+
+    fclose(write);
+    // break;
+    // }
+
+    // char path[MAX_LINE];
     if (p == 0)
     {
         int x_player, y_player, r = random_num(5, rooms_count - 1);
@@ -1427,7 +1616,7 @@ void New_Game(int user_mode, char username[MAX_NAMES])
         attroff((COLOR_PAIR(9) | A_BOLD | A_BLINK));
 
         attron(COLOR_PAIR(8));
-        printBoard(0, 0, 3, 2 * (floor + 3));
+        printBoard(0, 0, 3, (floor + 1) * 2 + 2);
         attroff(COLOR_PAIR(8));
 
         attron(COLOR_PAIR(13));
@@ -1438,7 +1627,7 @@ void New_Game(int user_mode, char username[MAX_NAMES])
 
         for (int i = 0; i < floor; i++)
         {
-            mvprintw(dy, dx - floor + ((i - 1) * 2), "\U0001F7E7");
+            mvprintw(dy, dx - floor + (i * 2), "\U0001F7E7");
             refresh();
             generate_map(username, i);
         }

@@ -55,16 +55,6 @@ void remove_dir(const char *path)
     rmdir(path);
 }
 
-char *setare(char buffer[MAX_NAMES])
-{
-    char *setareh = (char *)malloc(MAX_NAMES);
-    memset(setareh, 0, sizeof(setareh));
-    for (int i = 0; i < strlen(buffer); i++)
-        setareh[i] = '*';
-    setareh[strlen(setareh)] = '\0';
-    return setareh;
-}
-
 void delay(int milli_seconds)
 {
     clock_t start_time = clock();
@@ -304,16 +294,15 @@ void printBoard(int Ypadding, int Xpadding, int h, int w)
     getmaxyx(stdscr, scrY, scrX);
     int x = scrX / 2, y = scrY / 2;
 
-    char line[7], row[7];
     char up_left[7], up_right[7];
-    char down_left[7], down_right[7];
-
-    strcpy(line, "\u2501");
-    strcpy(row, "\u2503");
-
     strcpy(up_right, "\u2513");
     strcpy(up_left, "\u250F");
 
+    char line[7], row[7];
+    strcpy(line, "\u2501");
+    strcpy(row, "\u2503");
+
+    char down_left[7], down_right[7];
     strcpy(down_right, "\u251B");
     strcpy(down_left, "\u2517");
 
@@ -586,22 +575,32 @@ void new_pass(char username[MAX_NAMES])
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
+
+    attron(COLOR_PAIR(8));
+    printBoard(-2, 0, 7, 40);
+    attroff(COLOR_PAIR(8));
+    attron(COLOR_PAIR(13));
     mvprintw((scrY / 2) - 3, (scrX / 2) - 10, "Enter New Password : ");
+    attroff(COLOR_PAIR(13));
     int ch, p = 0;
-    char password[MAX_NAMES];
+    char password[MAX_NAMES], SHOWpassword[MAX_NAMES], spaces[27];
     memset(password, 0, sizeof(password));
+    memset(SHOWpassword, 0, sizeof(SHOWpassword));
+    memset(spaces, ' ', 27);
+    spaces[27] = '\0';
     password[0] = '\0';
+    SHOWpassword[0] = '\0';
     while (1)
     {
         curs_set(0);
-        mvprintw((scrY / 2) + 5, (scrX / 2) - 3, "Cancel");
-        mvprintw((scrY / 2) + 1, (scrX / 2) - 8, "random password");
-        mvprintw((scrY / 2) + 3, (scrX / 2) - 2, "Done");
+        mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Cancel");
+        mvprintw((scrY / 2) + 5, (scrX / 2) - 2, "Done");
+        mvprintw((scrY / 2) + 3, (scrX / 2) - 8, "random password");
 
         // password
         if (p == 0)
         {
-            move((scrY / 2) + 7, 0);
+            move((scrY / 2) + 9, 0);
             clrtoeol();
 
             curs_set(1);
@@ -610,19 +609,23 @@ void new_pass(char username[MAX_NAMES])
             {
                 ch = getch();
                 if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(password))
+                {
                     password[strlen(password) - 1] = '\0';
+                    SHOWpassword[strlen(SHOWpassword) - 1] = '\0';
+                }
                 else if (ch >= '!' && ch <= '~' && strlen(password) < LIMIT_INPUT)
                 {
                     password[strlen(password)] = (char)ch;
                     password[strlen(password)] = '\0';
+                    SHOWpassword[strlen(SHOWpassword)] = '*';
+                    SHOWpassword[strlen(SHOWpassword)] = '\0';
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                     break;
 
-                move((scrY / 2) - 1, 0);
-                clrtoeol();
+                mvprintw((scrY / 2) - 1, (scrX / 2) - 13, "%s", spaces);
                 attron(COLOR_PAIR(3));
-                mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", setare(password));
+                mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(SHOWpassword) / 2), "%s", SHOWpassword);
                 attroff(COLOR_PAIR(3));
                 refresh();
             }
@@ -632,7 +635,7 @@ void new_pass(char username[MAX_NAMES])
         else if (p == 1)
         {
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 1, (scrX / 2) - 8, "random password");
+            mvprintw((scrY / 2) + 3, (scrX / 2) - 8, "random password");
             attroff(COLOR_PAIR(1) | A_BLINK);
 
             while (1)
@@ -641,9 +644,9 @@ void new_pass(char username[MAX_NAMES])
                 if (ch == '\n')
                 {
                     strcpy(password, random_pass());
-
-                    move((scrY / 2) - 1, 0);
-                    clrtoeol();
+                    memset(SHOWpassword, '*', strlen(password));
+                    SHOWpassword[strlen(password)] = '\0';
+                    mvprintw((scrY / 2) - 1, (scrX / 2) - 13, "%s", spaces);
                     attron(COLOR_PAIR(3));
                     mvprintw((scrY / 2) - 1, (scrX / 2) - (strlen(password) / 2), "%s", password);
                     attroff(COLOR_PAIR(3));
@@ -658,7 +661,7 @@ void new_pass(char username[MAX_NAMES])
         else if (p == 2)
         {
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 3, (scrX / 2) - 2, "Done");
+            mvprintw((scrY / 2) + 5, (scrX / 2) - 2, "Done");
             attroff(COLOR_PAIR(1) | A_BLINK);
 
             while (1)
@@ -668,9 +671,11 @@ void new_pass(char username[MAX_NAMES])
                 {
                     if (search_login(username, password) == 1)
                     {
-                        move((scrY / 2) + 7, 0);
+                        move((scrY / 2) + 9, 0);
                         clrtoeol();
-                        mvprintw((scrY / 2) + 7, (scrX / 2) - 15, "The password is already taken.");
+                        attron(COLOR_PAIR(4));
+                        mvprintw((scrY / 2) + 9, (scrX / 2) - 15, "The password is already taken.");
+                        attroff(COLOR_PAIR(4));
                     }
                     else if (strlen(password) >= 7)
                     {
@@ -722,9 +727,11 @@ void new_pass(char username[MAX_NAMES])
                     }
                     else
                     {
-                        move((scrY / 2) + 7, 0);
+                        move((scrY / 2) + 9, 0);
                         clrtoeol();
-                        mvprintw((scrY / 2) + 7, (scrX / 2) - 25, "Please enter a password with at least 7 characters.");
+                        attron(COLOR_PAIR(4));
+                        mvprintw((scrY / 2) + 9, (scrX / 2) - 25, "Please enter a password with at least 7 characters.");
+                        attroff(COLOR_PAIR(4));
                     }
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
@@ -736,7 +743,7 @@ void new_pass(char username[MAX_NAMES])
         else if (p == 3)
         {
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 5, (scrX / 2) - 3, "Cancel");
+            mvprintw((scrY / 2) + 7, (scrX / 2) - 3, "Cancel");
             attroff(COLOR_PAIR(1) | A_BLINK);
 
             while (1)
@@ -787,16 +794,25 @@ void securityQ(char username[MAX_NAMES])
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
-    mvprintw((scrY / 2) - 4, (scrX / 2) - 10, "Security questions :");
-    mvprintw((scrY / 2) - 3, (scrX / 2) - 25, "What is the name of your pet?");
-    mvprintw((scrY / 2) - 2, (scrX / 2) - 25, "What is the name of your best friend?");
-    mvprintw((scrY / 2) - 1, (scrX / 2) - 25, "What was the name of your school?");
-    mvprintw((scrY / 2), (scrX / 2) - 25, "What is your favorite movie?");
-    mvprintw((scrY / 2) + 2, (scrX / 2) - 2, "Done");
+
+    attron(COLOR_PAIR(8));
+    printBoard(-1, 0, 8, 80);
+    attroff(COLOR_PAIR(8));
+
+    attron(COLOR_PAIR(9) | A_BOLD);
+    mvprintw((scrY / 2) - 7, (scrX / 2) - 10, "Security questions :");
+    attroff(COLOR_PAIR(9) | A_BOLD);
+    attron(COLOR_PAIR(13));
+    mvprintw((scrY / 2) - 3, (scrX / 2) - 34, "What is the name of your pet?");
+    mvprintw((scrY / 2) - 2, (scrX / 2) - 34, "What is the name of your best friend?");
+    mvprintw((scrY / 2) - 1, (scrX / 2) - 34, "What was the name of your school?");
+    mvprintw((scrY / 2), (scrX / 2) - 34, "What is your favorite movie?");
+    attroff(COLOR_PAIR(13));
 
     int ch, p = 0;
-    char pet[MAX_NAMES], bf[MAX_NAMES], school[MAX_NAMES], movie[MAX_NAMES];
-
+    char pet[MAX_NAMES], bf[MAX_NAMES], school[MAX_NAMES], movie[MAX_NAMES], spaces[LIMIT_INPUT];
+    memset(spaces, ' ', LIMIT_INPUT);
+    spaces[25] = '\0';
     memset(pet, 0, sizeof(pet));
     memset(bf, 0, sizeof(bf));
     memset(school, 0, sizeof(school));
@@ -804,13 +820,13 @@ void securityQ(char username[MAX_NAMES])
 
     while (1)
     {
-        mvprintw((scrY / 2) + 4, (scrX / 2) - 3, "Cancel");
-        mvprintw((scrY / 2) + 2, (scrX / 2) - 2, "Done");
+        mvprintw((scrY / 2) + 6, (scrX / 2) - 3, "Cancel");
+        mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
         curs_set(1);
         // pet
         if (p == 0)
         {
-            move((scrY / 2) - 3, (scrX / 2) + 16 + strlen(pet));
+            move((scrY / 2) - 3, (scrX / 2) + 7 + strlen(pet));
             while (1)
             {
                 ch = getch();
@@ -821,9 +837,9 @@ void securityQ(char username[MAX_NAMES])
                 else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                     break;
 
-                move((scrY / 2) - 3, (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2) - 3, (scrX / 2) + 16, "%s", pet);
+                mvprintw((scrY / 2) - 3, (scrX / 2) + 7, "%s", spaces);
+                refresh();
+                mvprintw((scrY / 2) - 3, (scrX / 2) + 7, "%s", pet);
                 refresh();
             }
         }
@@ -831,20 +847,19 @@ void securityQ(char username[MAX_NAMES])
         // bf
         else if (p == 1)
         {
-            move((scrY / 2) - 2, (scrX / 2) + 16 + strlen(bf));
+            move((scrY / 2) - 2, (scrX / 2) + 7 + strlen(bf));
             while (1)
             {
                 ch = getch();
                 if (ch >= '!' && ch <= '~' && strlen(bf) < LIMIT_INPUT)
                     bf[strlen(bf)] = (char)ch;
-                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
+                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(bf) != 0)
                     bf[strlen(bf) - 1] = '\0';
                 else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                     break;
 
-                move((scrY / 2) - 2, (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2) - 2, (scrX / 2) + 16, "%s", bf);
+                mvprintw((scrY / 2) - 2, (scrX / 2) + 7, "%s", spaces);
+                mvprintw((scrY / 2) - 2, (scrX / 2) + 7, "%s", bf);
                 refresh();
             }
         }
@@ -852,20 +867,19 @@ void securityQ(char username[MAX_NAMES])
         // school
         else if (p == 2)
         {
-            move((scrY / 2) - 1, (scrX / 2) + 16 + strlen(school));
+            move((scrY / 2) - 1, (scrX / 2) + 7 + strlen(school));
             while (1)
             {
                 ch = getch();
                 if (ch >= '!' && ch <= '~' && strlen(school) < LIMIT_INPUT)
                     school[strlen(school)] = (char)ch;
-                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
+                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(bf) != 0)
                     school[strlen(school) - 1] = '\0';
                 else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                     break;
 
-                move((scrY / 2) - 1, (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2) - 1, (scrX / 2) + 16, "%s", school);
+                mvprintw((scrY / 2) - 1, (scrX / 2) + 7, "%s", spaces);
+                mvprintw((scrY / 2) - 1, (scrX / 2) + 7, "%s", school);
                 refresh();
             }
         }
@@ -873,20 +887,19 @@ void securityQ(char username[MAX_NAMES])
         // movie
         else if (p == 3)
         {
-            move((scrY / 2), (scrX / 2) + 16 + strlen(movie));
+            move((scrY / 2), (scrX / 2) + 7 + strlen(movie));
             while (1)
             {
                 ch = getch();
                 if (ch >= '!' && ch <= '~' && strlen(movie) < LIMIT_INPUT)
                     movie[strlen(movie)] = (char)ch;
-                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(pet) != 0)
+                else if ((ch == 7 || ch == KEY_BACKSPACE) && strlen(bf) != 0)
                     movie[strlen(movie) - 1] = '\0';
                 else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                     break;
 
-                move((scrY / 2), (scrX / 2) + 16);
-                clrtoeol();
-                mvprintw((scrY / 2), (scrX / 2) + 16, "%s", movie);
+                mvprintw((scrY / 2), (scrX / 2) + 7, "%s", spaces);
+                mvprintw((scrY / 2), (scrX / 2) + 7, "%s", movie);
                 refresh();
             }
         }
@@ -896,7 +909,7 @@ void securityQ(char username[MAX_NAMES])
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 2, (scrX / 2) - 2, "Done");
+            mvprintw((scrY / 2) + 4, (scrX / 2) - 2, "Done");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -921,9 +934,11 @@ void securityQ(char username[MAX_NAMES])
                         }
                         else
                         {
-                            move((scrY / 2) + 6, 0);
+                            move((scrY / 2) + 8, 0);
                             clrtoeol();
-                            mvprintw((scrY / 2) + 6, (scrX / 2) - 9, "Something is wrong");
+                            attron(COLOR_PAIR(4));
+                            mvprintw((scrY / 2) + 8, (scrX / 2) - 9, "Something is wrong");
+                            attroff(COLOR_PAIR(4));
                         }
                     }
                     else
@@ -939,9 +954,11 @@ void securityQ(char username[MAX_NAMES])
                         }
                         else
                         {
-                            move((scrY / 2) + 6, 0);
+                            move((scrY / 2) + 8, 0);
                             clrtoeol();
-                            mvprintw((scrY / 2) + 6, (scrX / 2) - 15, "Please answer all the questions.");
+                            attron(COLOR_PAIR(4));
+                            mvprintw((scrY / 2) + 8, (scrX / 2) - 15, "Please answer all the questions.");
+                            attroff(COLOR_PAIR(4));
                         }
                     }
                 }
@@ -955,7 +972,7 @@ void securityQ(char username[MAX_NAMES])
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 4, (scrX / 2) - 3, "Cancel");
+            mvprintw((scrY / 2) + 6, (scrX / 2) - 3, "Cancel");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -968,9 +985,11 @@ void securityQ(char username[MAX_NAMES])
                 }
                 else if (ch == '\n' && access(path, F_OK) != 0)
                 {
-                    move((scrY / 2) + 6, 0);
+                    move((scrY / 2) + 8, 0);
                     clrtoeol();
-                    mvprintw((scrY / 2) + 6, (scrX / 2) - 15, "You must answer the questions.");
+                    attron(COLOR_PAIR(4));
+                    mvprintw((scrY / 2) + 8, (scrX / 2) - 15, "You must answer the questions.");
+                    attroff(COLOR_PAIR(4));
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN)
                     break;
@@ -992,15 +1011,18 @@ int log_in()
     UseColor();
     int scrX, scrY;
     getmaxyx(stdscr, scrY, scrX);
+    int x = scrX / 2, y = scrY / 2;
 
     int users_count, ch, p = 0, big = 0;
 
-    char players[3][MAX_NAMES], username[MAX_NAMES], password[MAX_NAMES], SHOWpassword[MAX_NAMES];
+    char players[3][MAX_NAMES], username[MAX_NAMES], password[MAX_NAMES], SHOWpassword[MAX_NAMES], spaces[LIMIT_INPUT];
     memset(username, 0, sizeof(username));
     memset(password, 0, sizeof(password));
     memset(SHOWpassword, 0, sizeof(SHOWpassword));
-    strcpy(username, "\0");
-    strcpy(password, "\0");
+    memset(spaces, ' ', LIMIT_INPUT);
+    spaces[25] = '\0';
+    username[0] = '\0';
+    password[0] = '\0';
     SHOWpassword[0] = '\0';
 
     FILE *read;
@@ -1010,7 +1032,7 @@ int log_in()
     for (int i = 0; i < 3; i++)
     {
         memset(players[i], 0, sizeof(players[i]));
-        strcpy(players[i], "\0");
+        players[i][0] = '\0';
     }
 
     for (int i = 0; i < users_count && i < 3; i++)
@@ -1022,10 +1044,27 @@ int log_in()
     fclose(read);
 
     attron(COLOR_PAIR(9) | A_BOLD);
-    mvprintw((scrY / 2) - 12, (scrX / 2) - 7, "Last Players :");
+    mvprintw((scrY / 2) - 9, (scrX / 2) - 7, "Last Players :");
     attroff(COLOR_PAIR(9) | A_BOLD);
     attron(COLOR_PAIR(8));
-    printBoard(-7, 0, 7, 36);
+    // printBoard(-7, 0, 7, 36);
+    printBoard(-4, 0, 15, 60);
+
+    int h = 7, w = 60;
+
+    char line[7], row[7];
+    strcpy(line, "\u2501");
+    strcpy(row, "\u2503");
+
+    char right[7], left[7];
+    strcpy(right, "\u252B");
+    strcpy(left, "\u2523");
+
+    mvprintw(y - (h / 2) - 6, x - (w / 2) + w - 1, "%s", right);
+    for (int i = 1; i < w - 1; i++)
+        mvprintw(y - (h / 2) - 6 + h - 1, x - (w / 2) + i, "%s", line);
+    mvprintw(y - (h / 2) - 6 + h - 1, x - (w / 2), "%s", left);
+
     attroff(COLOR_PAIR(8));
     attron(COLOR_PAIR(13) | A_BOLD);
     mvprintw((scrY / 2) - 1, (scrX / 2) - 14, "Email or Name : ");
@@ -1035,21 +1074,21 @@ int log_in()
     while (1)
     {
         attron(COLOR_PAIR(21));
-        mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
-        mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
-        mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
+        mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
+        mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
+        mvprintw((scrY / 2) - 5, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
         attroff(COLOR_PAIR(21));
 
-        mvprintw((scrY / 2) + 3, (scrX / 2) - 7, "forgot password");
-        mvprintw((scrY / 2) + 6, (scrX / 2) - 3, "Log in");
-        mvprintw((scrY / 2) + 8, (scrX / 2) - 3, "Cancel");
+        mvprintw((scrY / 2) + 6, (scrX / 2) - 7, "forgot password");
+        mvprintw((scrY / 2) + 8, (scrX / 2) - 3, "Log in");
+        mvprintw((scrY / 2) + 10, (scrX / 2) - 3, "Cancel");
 
         // player 1
         if (p == 0)
         {
             curs_set(0);
             attron(COLOR_PAIR(7) | A_BLINK);
-            mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
+            mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
             attroff(COLOR_PAIR(7) | A_BLINK);
             while (1)
             {
@@ -1057,13 +1096,12 @@ int log_in()
                 if (ch == '\n' && strlen(players[0]))
                 {
                     strcpy(username, players[0]);
-                    move((scrY / 2) - 1, (scrX / 2) + 2);
-                    clrtoeol();
+                    mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", spaces);
                     attron(COLOR_PAIR(3));
                     mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                     attroff(COLOR_PAIR(3));
                     refresh();
-                    mvprintw((scrY / 2) - 8, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
+                    mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "1- %s", players[0]);
                     move((scrY / 2) + 1, (scrX / 2) + 2 + strlen(password));
                     p = 3;
                     curs_set(1);
@@ -1079,7 +1117,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(7) | A_BLINK);
-            mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
+            mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
             attroff(COLOR_PAIR(7) | A_BLINK);
             while (1)
             {
@@ -1087,13 +1125,12 @@ int log_in()
                 if (ch == '\n' && strlen(players[1]))
                 {
                     strcpy(username, players[1]);
-                    move((scrY / 2) - 1, (scrX / 2) + 2);
-                    clrtoeol();
+                    mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", spaces);
                     attron(COLOR_PAIR(3));
                     mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                     attroff(COLOR_PAIR(3));
                     refresh();
-                    mvprintw((scrY / 2) - 7, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
+                    mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "2- %s", players[1]);
                     move((scrY / 2) + 1, (scrX / 2) + 2 + strlen(password));
                     p = 3;
                     curs_set(1);
@@ -1109,7 +1146,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(7) | A_BLINK);
-            mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
+            mvprintw((scrY / 2) - 5, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
             attroff(COLOR_PAIR(7) | A_BLINK);
             while (1)
             {
@@ -1117,13 +1154,12 @@ int log_in()
                 if (ch == '\n' && strlen(players[2]))
                 {
                     strcpy(username, players[2]);
-                    move((scrY / 2) - 1, (scrX / 2) + 2);
-                    clrtoeol();
+                    mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", spaces);
                     attron(COLOR_PAIR(3));
                     mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                     attroff(COLOR_PAIR(3));
                     refresh();
-                    mvprintw((scrY / 2) - 6, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
+                    mvprintw((scrY / 2) - 5, (scrX / 2) - (big / 2) - 1, "3- %s", players[2]);
                     move((scrY / 2) + 1, (scrX / 2) + 2 + strlen(password));
                     p = 3;
                     curs_set(1);
@@ -1149,8 +1185,7 @@ int log_in()
                 else if (ch == KEY_DOWN || ch == KEY_UP || ch == '\n')
                     break;
 
-                move((scrY / 2) - 1, (scrX / 2) + 2);
-                clrtoeol();
+                mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", spaces);
                 attron(COLOR_PAIR(3));
                 mvprintw((scrY / 2) - 1, (scrX / 2) + 2, "%s", username);
                 attroff(COLOR_PAIR(3));
@@ -1172,17 +1207,17 @@ int log_in()
                     password[strlen(password) - 1] = '\0';
                     SHOWpassword[strlen(SHOWpassword) - 1] = '\0';
                 }
-                else if (ch > 32 && ch < 127 && strlen(username) < LIMIT_INPUT)
+                else if (ch > 32 && ch < 127 && strlen(password) < LIMIT_INPUT)
                 {
                     password[strlen(password)] = (char)ch;
+                    password[strlen(password)] = '\0';
                     SHOWpassword[strlen(SHOWpassword)] = '*';
                     SHOWpassword[strlen(SHOWpassword)] = '\0';
                 }
                 else if (ch == KEY_DOWN || ch == KEY_UP || ch == '\n')
                     break;
 
-                move((scrY / 2) + 1, (scrX / 2) + 2);
-                clrtoeol();
+                mvprintw((scrY / 2) + 1, (scrX / 2) + 2, "%s", spaces);
                 attron(COLOR_PAIR(4));
                 mvprintw((scrY / 2) + 1, (scrX / 2) + 2, "%s", SHOWpassword);
                 attroff(COLOR_PAIR(4));
@@ -1196,7 +1231,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 3, (scrX / 2) - 7, "forgot password");
+            mvprintw((scrY / 2) + 6, (scrX / 2) - 7, "forgot password");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -1204,10 +1239,10 @@ int log_in()
 
                 if (ch == '\n' && (strlen(username) == 0 || username_exist(username) == 0 || email_exist(username)))
                 {
-                    move((scrY / 2) + 11, 0);
+                    move((scrY / 2) + 12, 0);
                     clrtoeol();
                     attron(COLOR_PAIR(4));
-                    mvprintw((scrY / 2) + 10, (scrX / 2) - 23, "There is no user with this username or email");
+                    mvprintw((scrY / 2) + 12, (scrX / 2) - 23, "There is no user with this username or email");
                     attron(COLOR_PAIR(3));
                 }
                 else if (ch == '\n' && (username_exist(username) || email_exist(username)))
@@ -1231,7 +1266,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 6, (scrX / 2) - 3, "Log in");
+            mvprintw((scrY / 2) + 8, (scrX / 2) - 3, "Log in");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -1239,10 +1274,10 @@ int log_in()
 
                 if (ch == '\n' && (strlen(username) == 0 || (username_exist(username) == 0 && email_exist(username) == 0)))
                 {
-                    move((scrY / 2) + 10, 0);
+                    move((scrY / 2) + 12, 0);
                     clrtoeol();
                     attron(COLOR_PAIR(4));
-                    mvprintw((scrY / 2) + 10, (scrX / 2) - 23, "There is no user with this username or email");
+                    mvprintw((scrY / 2) + 12, (scrX / 2) - 23, "There is no user with this username or email");
                     attroff(COLOR_PAIR(4));
                 }
                 else if (ch == '\n' && (username_exist(username) || email_exist(username)))
@@ -1257,10 +1292,10 @@ int log_in()
                     }
                     else if (check == 2)
                     {
-                        move((scrY / 2) + 10, 0);
+                        move((scrY / 2) + 12, 0);
                         clrtoeol();
                         attron(COLOR_PAIR(4));
-                        mvprintw((scrY / 2) + 10, (scrX / 2) - 7, "Wrong password!");
+                        mvprintw((scrY / 2) + 12, (scrX / 2) - 7, "Wrong password!");
                         attroff(COLOR_PAIR(4));
                     }
                 }
@@ -1274,7 +1309,7 @@ int log_in()
         {
             curs_set(0);
             attron(COLOR_PAIR(1) | A_BLINK);
-            mvprintw((scrY / 2) + 8, (scrX / 2) - 3, "Cancel");
+            mvprintw((scrY / 2) + 10, (scrX / 2) - 3, "Cancel");
             attroff(COLOR_PAIR(1) | A_BLINK);
             while (1)
             {
@@ -1307,15 +1342,7 @@ int add_New_User()
     mvprintw((scrY / 2) - 4, (scrX / 2) - 17, "Create your hero for an epic quest.");
     attroff(COLOR_PAIR(9) | A_BOLD);
     attron(COLOR_PAIR(8));
-    mvprintw((scrY / 2) - 3, (scrX / 2) - 31, "--------------------------------------------------------------");
-    mvprintw((scrY / 2) - 2, (scrX / 2) - 31, "|                                                            |");
-    // mvprintw((scrY / 2) - 1, (scrX / 2) - 31, "|                                                            |");
-    mvprintw((scrY / 2), (scrX / 2) - 31, "|                                                            |");
-    // mvprintw((scrY / 2) + 1, (scrX / 2) - 31, "|                                                            |");
-    mvprintw((scrY / 2) + 2, (scrX / 2) - 31, "|                                                            |");
-    // mvprintw((scrY / 2) + 3, (scrX / 2) - 31, "|                                                            |");
-    mvprintw((scrY / 2) + 4, (scrX / 2) - 31, "|                                                            |");
-    mvprintw((scrY / 2) + 5, (scrX / 2) - 31, "--------------------------------------------------------------");
+    printBoard(1, 0, 9, 63);
     attroff(COLOR_PAIR(8));
     attron(COLOR_PAIR(13) | A_BOLD);
     mvprintw((scrY / 2) - 1, (scrX / 2) - 25, "Enter your name, hero : ");
@@ -1324,11 +1351,13 @@ int add_New_User()
     attroff(COLOR_PAIR(13) | A_BOLD);
 
     int ch, p = 0;
-    char username[MAX_NAMES], password[MAX_NAMES], email[MAX_NAMES], SHOWpassword[MAX_NAMES];
+    char username[MAX_NAMES], password[MAX_NAMES], email[MAX_NAMES], SHOWpassword[MAX_NAMES], spaces[MAX_NAMES];
     memset(username, 0, sizeof(username));
     memset(password, 0, sizeof(password));
     memset(email, 0, sizeof(email));
     memset(SHOWpassword, 0, sizeof(SHOWpassword));
+    memset(spaces, ' ', LIMIT_INPUT);
+    spaces[25] = '\0';
     username[0] = '\0';
     email[0] = '\0';
     password[0] = '\0';
@@ -1368,8 +1397,7 @@ int add_New_User()
                     break;
                 }
 
-                move((scrY / 2) - 1, (scrX / 2) + 3);
-                clrtoeol();
+                mvprintw((scrY / 2) - 1, (scrX / 2) + 3, "%s", spaces);
                 refresh();
                 attron(COLOR_PAIR(3));
                 mvprintw((scrY / 2) - 1, (scrX / 2) + 3, "%s", username);
@@ -1396,6 +1424,8 @@ int add_New_User()
                 {
                     password[strlen(password)] = (char)ch;
                     password[strlen(password)] = '\0';
+                    SHOWpassword[strlen(SHOWpassword)] = '*';
+                    SHOWpassword[strlen(SHOWpassword)] = '\0';
                 }
                 else if (ch == KEY_UP || ch == KEY_DOWN || ch == '\n')
                 {
@@ -1410,11 +1440,10 @@ int add_New_User()
                     break;
                 }
 
-                move((scrY / 2) + 1, (scrX / 2) + 3);
-                clrtoeol();
+                mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", spaces);
                 refresh();
                 attron(COLOR_PAIR(4));
-                mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", setare(password));
+                mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", SHOWpassword);
                 attroff(COLOR_PAIR(4));
                 refresh();
             }
@@ -1449,8 +1478,7 @@ int add_New_User()
                     break;
                 }
 
-                move((scrY / 2) + 3, (scrX / 2) + 3);
-                clrtoeol();
+                mvprintw((scrY / 2) + 3, (scrX / 2) + 3, "%s", spaces);
                 refresh();
                 attron(COLOR_PAIR(3));
                 mvprintw((scrY / 2) + 3, (scrX / 2) + 3, "%s", email);
@@ -1472,8 +1500,7 @@ int add_New_User()
                 if (ch == '\n')
                 {
                     strcpy(password, random_pass());
-                    move((scrY / 2) + 1, (scrX / 2) + 3);
-                    clrtoeol();
+                    mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", spaces);
                     refresh();
                     attron(COLOR_PAIR(3));
                     mvprintw((scrY / 2) + 1, (scrX / 2) + 3, "%s", password);
@@ -1791,40 +1818,106 @@ int RegisterMenu()
     }
 }
 
-void printTable(int big, int x, int y, int users_count, char line[MAX_LINE], char row[MAX_LINE])
+void printTable(int big, int x, int y, int users_count, int tabs[])
 {
-    int lineX = x - (strlen(line) / 2);
+    char line[7], row[7];
+    strcpy(line, "\u2501");
+    strcpy(row, "\u2503");
+
+    char top_right[7], top_left[7];
+    strcpy(top_left, "\u250F");
+    strcpy(top_right, "\u2513");
+
+    char down_right[7], down_left[7];
+    strcpy(down_right, "\u251B");
+    strcpy(down_left, "\u2517");
+
+    char right[7], left[7];
+    strcpy(right, "\u252B");
+    strcpy(left, "\u2523");
+
+    char top[7], down[7];
+    strcpy(top, "\u2533");
+    strcpy(down, "\u253B");
+
+    char tdrl[7];
+    strcpy(tdrl, "\u254B");
+
+    int w = 46 + big;
+
+    int lineX = x - ((46 + big) / 2);
 
     attron(COLOR_PAIR(8));
     // header
-    mvprintw(y - 16, lineX, "%s", line);
-    mvprintw(y - 15, lineX, "%s", row);
-    mvprintw(y - 14, lineX, "%s", line);
-    mvprintw(y - 13, lineX, "%s", row);
+    mvprintw(y - 16, lineX, "%s", top_left);
+    for (int i = 1; i < w - 1; i++)
+        mvprintw(y - 16, lineX + i, "%s", line);
+    mvprintw(y - 16, lineX + w - 1, "%s", top_right);
+
+    for (int i = 1; i < 6; i++)
+        mvprintw(y - 16, tabs[i] - 2, "%s", top);
+
+    for (int i = 0; i < 6; i++)
+        mvprintw(y - 15, tabs[i] - 2, "%s", row);
+    mvprintw(y - 15, lineX + w - 1, "%s", row);
+
+    mvprintw(y - 14, lineX, "%s", left);
+    for (int i = 1; i < w - 1; i++)
+        mvprintw(y - 14, lineX + i, "%s", line);
+    mvprintw(y - 14, lineX + w - 1, "%s", right);
+
+    for (int i = 1; i < 6; i++)
+        mvprintw(y - 14, tabs[i] - 2, "%s", tdrl);
+
+    for (int i = 0; i < 6; i++)
+        mvprintw(y - 13, tabs[i] - 2, "%s", row);
+    mvprintw(y - 13, lineX + w - 1, "%s", row);
+
     int rrrr = -12;
     for (int i = 0; i < (2 * users_count) && rrrr < 10; i++)
     {
         if (rrrr == -6)
         {
-            mvprintw(y + (rrrr++), lineX, "%s", line);
+            mvprintw(y + (rrrr), lineX, "%s", left);
+            for (int i = 1; i < w - 1; i++)
+                mvprintw(y + (rrrr), lineX + i, "%s", line);
+            for (int i = 1; i < 6; i++)
+                mvprintw(y + rrrr, tabs[i] - 2, "%s", tdrl);
+            mvprintw(y + (rrrr++), lineX + w - 1, "%s", right);
             if (users_count > 3)
             {
-                mvprintw(y + (rrrr++), lineX, "%s", row);
-                mvprintw(y + (rrrr++), lineX, "%s", row);
+                for (int i = 0; i < 6; i++)
+                    mvprintw(y + (rrrr), tabs[i] - 2, "%s", row);
+                mvprintw(y + (rrrr++), lineX + w - 1, "%s", row);
             }
         }
         else
-            mvprintw(y + (rrrr++), lineX, "%s", row);
+        {
+            for (int i = 0; i < 6; i++)
+                mvprintw(y + (rrrr), tabs[i] - 2, "%s", row);
+            mvprintw(y + (rrrr++), lineX + w - 1, "%s", row);
+        }
     }
-    mvprintw(y + rrrr, lineX, "%s", line);
+
+    for (int i = 0; i < 6; i++)
+        mvprintw(y + (rrrr), tabs[i] - 2, "%s", row);
+    mvprintw(y + (rrrr++), lineX + w - 1, "%s", row);
+
+    mvprintw(y + rrrr, lineX, "%s", down_left);
+    for (int i = 1; i < w - 1; i++)
+        mvprintw(y + rrrr, lineX + i, "%s", line);
+    mvprintw(y + rrrr, lineX + w - 1, "%s", down_right);
+
+    for (int i = 1; i < 6; i++)
+        mvprintw(y + rrrr, tabs[i] - 2, "%s", down);
     attroff(COLOR_PAIR(8));
 
     attron(COLOR_PAIR(13));
     mvprintw(y - 17, x - 6, "LeaderBoard :");
     if (users_count > 10)
     {
-        mvprintw(y - 1, x + (strlen(line) / 2) + 6, "Next Page");
-        mvprintw(y + 1, x + (strlen(line) / 2) + 9, "\u25B6");
+        mvprintw(y - 1, x + ((46 + big) / 2) + 6, "Next Page");
+        mvprintw(y + 1, x + ((46 + big) / 2) + 9, "\u25B6");
         mvprintw(y - 1, lineX - 19, "Previous Page");
         mvprintw(y + 1, lineX - 14, "\u25C4");
     }
@@ -1840,19 +1933,14 @@ void printTable(int big, int x, int y, int users_count, char line[MAX_LINE], cha
     attroff(COLOR_PAIR(2) | A_BOLD);
 }
 
-void clearTable(int big, int y, int x, char line[MAX_LINE], char row[MAX_LINE])
+void clearTable(int big, int x, int y, int tabs[], char spaces[][MAX_NAMES], int users_count)
 {
-    for (int i = -4; i < 9; i += 2)
+    for (int i = 0; i < 7 && i < users_count - 3; i++)
     {
-        move(y + i, 0);
-        clrtoeol();
+        for (int j = 0; j < 6; j++)
+            mvprintw(y - 4, tabs[j] - 1, "%s", spaces[j]);
+        y += 2;
     }
-    int lineX = x - ((46 + big) / 2);
-
-    attron(COLOR_PAIR(8));
-    for (int rrrr = -4; rrrr < 10; rrrr += 2)
-        mvprintw(y + (rrrr), lineX, "%s", row);
-    attroff(COLOR_PAIR(8));
 }
 
 void leaderBoard(char username[MAX_NAMES])
@@ -1911,31 +1999,6 @@ void leaderBoard(char username[MAX_NAMES])
         fprintf(write, "%s %d %d %d %d\n", names[i], score[i], golds[i], games[i], ex[i]);
     fclose(write);
 
-    char line[MAX_LINE], row[MAX_LINE];
-    memset(line, 0, sizeof(line));
-    memset(row, 0, sizeof(row));
-    for (int i = 0; i < 46 + big; i++)
-        line[i] = '-';
-    row[0] = '|';
-    for (int i = 1; i < 7; i++)
-        row[i] = ' ';
-    row[7] = '|';
-    for (int i = 8; i < 10 + big; i++)
-        row[i] = ' ';
-    row[10 + big] = '|';
-    for (int i = 11 + big; i < 19 + big; i++)
-        row[i] = ' ';
-    row[19 + big] = '|';
-    for (int i = 20 + big; i < 28 + big; i++)
-        row[i] = ' ';
-    row[28 + big] = '|';
-    for (int i = 29 + big; i < 36 + big; i++)
-        row[i] = ' ';
-    row[36 + big] = '|';
-    for (int i = 37 + big; i < 45 + big; i++)
-        row[i] = ' ';
-    row[45 + big] = '|';
-
     tabs[0] = x - ((46 + big) / 2) + 2;
     tabs[1] = x - ((46 + big) / 2) + 9;
     tabs[2] = x - ((46 + big) / 2) + 12 + big;
@@ -1943,21 +2006,42 @@ void leaderBoard(char username[MAX_NAMES])
     tabs[4] = x - ((46 + big) / 2) + 30 + big;
     tabs[5] = x - ((46 + big) / 2) + 38 + big;
 
+    char spaces[6][MAX_NAMES];
+    memset(spaces[0], ' ', 6);
+    spaces[0][6] = '\0';
+
+    memset(spaces[1], ' ', big + 2);
+    spaces[1][big + 2] = '\0';
+
+    memset(spaces[2], ' ', 8);
+    spaces[2][8] = '\0';
+
+    memset(spaces[3], ' ', 8);
+    spaces[3][8] = '\0';
+
+    memset(spaces[4], ' ', 7);
+    spaces[4][7] = '\0';
+
+    memset(spaces[5], ' ', 8);
+    spaces[5][8] = '\0';
+
     // best players
 
     char epithets[3][MAX_NAMES] = {"GOAT", "Elite", "Master"};
     char emojis[3][MAX_NAMES] = {"\U0001F451", "\U0001F3C6", "\U0001F948"};
 
-    printTable(big, x, y, users_count, line, row);
+    printTable(big, x, y, users_count, tabs);
 
     int rr = -12;
     for (int i = 0; i < users_count && i < 3; i++)
     {
         if (i != target)
-            mvprintw(y + rr, x + (strlen(line) / 2) + 2, "%s", emojis[i]);
+            mvprintw(y + rr, x + ((46 + big) / 2) + 2, "%s", emojis[i]);
+
         attron(COLOR_PAIR(i + 9));
-        mvprintw(y + rr, x - (strlen(line) / 2) - strlen(epithets[i]) - 2, "%s", epithets[i]);
+        mvprintw(y + rr, x - ((46 + big) / 2) - strlen(epithets[i]) - 2, "%s", epithets[i]);
         attroff(COLOR_PAIR(i + 9));
+
         attron(COLOR_PAIR(i + 9) | A_BOLD);
         mvprintw(y + rr, tabs[0], "#%d", rate[i]);
         mvprintw(y + rr, tabs[1], "%s", names[i]);
@@ -1972,7 +2056,7 @@ void leaderBoard(char username[MAX_NAMES])
     if (target < 3 && target >= 0)
     {
         attron(COLOR_PAIR(target + 9));
-        mvprintw(y + (target * 2) - 12, x + (strlen(line) / 2) + 2, "you %s", emojis[target]);
+        mvprintw(y + (target * 2) - 12, x + ((46 + big) / 2) + 2, "you %s", emojis[target]);
         attroff(COLOR_PAIR(target + 9));
     }
 
@@ -1987,8 +2071,8 @@ void leaderBoard(char username[MAX_NAMES])
         if (target == i)
         {
             attron(COLOR_PAIR(13));
-            mvprintw(y + r, x - (strlen(line) / 2) - 2, ">");
-            mvprintw(y + r, x + (strlen(line) / 2) + 1, "<");
+            mvprintw(y + r, x - ((46 + big) / 2) - 2, ">");
+            mvprintw(y + r, x + ((46 + big) / 2) + 1, "<");
             attroff(COLOR_PAIR(13));
             attron(A_BOLD | COLOR_PAIR(12));
             mvprintw(y + r, tabs[1], "%s", names[i]);
@@ -2003,7 +2087,6 @@ void leaderBoard(char username[MAX_NAMES])
         r += 2;
     }
 
-    // getch();
     int ch, start = 4;
     while (1)
     {
@@ -2028,7 +2111,7 @@ void leaderBoard(char username[MAX_NAMES])
             if (ch == KEY_LEFT)
             {
                 start -= 7;
-                clearTable(big, y, x, line, row);
+                clearTable(big, x, y, tabs, spaces, users_count);
                 if (users_count - start - 6 < 0)
                     start += users_count - start - 6;
                 if (start < 4)
@@ -2041,8 +2124,8 @@ void leaderBoard(char username[MAX_NAMES])
                     if (target == i)
                     {
                         attron(COLOR_PAIR(13));
-                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
-                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        mvprintw(y + r1, x - ((46 + big) / 2) - 2, ">");
+                        mvprintw(y + r1, x + ((46 + big) / 2) + 1, "<");
                         attroff(COLOR_PAIR(13));
                         attron(A_BOLD | COLOR_PAIR(12));
                         mvprintw(y + r1, tabs[1], "%s", names[i]);
@@ -2060,7 +2143,7 @@ void leaderBoard(char username[MAX_NAMES])
             else if (ch == KEY_RIGHT)
             {
                 start += 7;
-                clearTable(big, y, x, line, row);
+                clearTable(big, x, y, tabs, spaces, users_count);
                 if (users_count - start - 6 < 0)
                     start += users_count - start - 6;
                 if (start < 4)
@@ -2073,8 +2156,8 @@ void leaderBoard(char username[MAX_NAMES])
                     if (target == i)
                     {
                         attron(COLOR_PAIR(13));
-                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
-                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        mvprintw(y + r1, x - ((46 + big) / 2) - 2, ">");
+                        mvprintw(y + r1, x + ((46 + big) / 2) + 1, "<");
                         attroff(COLOR_PAIR(13));
                         attron(A_BOLD | COLOR_PAIR(12));
                         mvprintw(y + r1, tabs[1], "%s", names[i]);
@@ -2092,7 +2175,7 @@ void leaderBoard(char username[MAX_NAMES])
             else if (ch == KEY_UP)
             {
                 start--;
-                clearTable(big, y, x, line, row);
+                clearTable(big, x, y, tabs, spaces, users_count);
                 if (users_count - start - 6 < 0)
                     start += users_count - start - 6;
                 if (start < 4)
@@ -2105,8 +2188,8 @@ void leaderBoard(char username[MAX_NAMES])
                     if (target == i)
                     {
                         attron(COLOR_PAIR(13));
-                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
-                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        mvprintw(y + r1, x - ((46 + big) / 2) - 2, ">");
+                        mvprintw(y + r1, x + ((46 + big) / 2) + 1, "<");
                         attroff(COLOR_PAIR(13));
                         attron(A_BOLD | COLOR_PAIR(12));
                         mvprintw(y + r1, tabs[1], "%s", names[i]);
@@ -2124,7 +2207,7 @@ void leaderBoard(char username[MAX_NAMES])
             else if (ch == KEY_DOWN)
             {
                 start++;
-                clearTable(big, y, x, line, row);
+                clearTable(big, x, y, tabs, spaces, users_count);
                 if (users_count - start - 6 < 0)
                     start += users_count - start - 6;
                 if (start < 4)
@@ -2137,8 +2220,8 @@ void leaderBoard(char username[MAX_NAMES])
                     if (target == i)
                     {
                         attron(COLOR_PAIR(13));
-                        mvprintw(y + r1, x - (strlen(line) / 2) - 2, ">");
-                        mvprintw(y + r1, x + (strlen(line) / 2) + 1, "<");
+                        mvprintw(y + r1, x - ((46 + big) / 2) - 2, ">");
+                        mvprintw(y + r1, x + ((46 + big) / 2) + 1, "<");
                         attroff(COLOR_PAIR(13));
                         attron(A_BOLD | COLOR_PAIR(12));
                         mvprintw(y + r1, tabs[1], "%s", names[i]);
