@@ -61,6 +61,7 @@
     "stdio.h": "c",
     "sdl.h": "c",
     "locale.h": "c",
-    "ncurses.h": "c"
+    "ncurses.h": "c",
+    "unistd.h": "c"
   }
 }

@@ -4,6 +4,47 @@
 #define MAX_NAMES 256
 #define MAX_LINE 1024
 
+typedef struct Player
+{
+    char c[7];
+    int x;
+    int y;
+    int health;
+    int hungry;
+    int golds;
+    int XP;
+    int score;
+    int foods[5];
+    int weapons[5];
+} Player;
+
+typedef struct Room
+{
+    int x;
+    int y;
+    int h;
+    int w;
+    int visible;
+    int kind;
+
+    int tv;
+    int dv;
+    int rv;
+    int lv;
+    int top_door;
+    int down_door;
+    int right_door;
+    int left_door;
+} Room;
+
+typedef struct cell
+{
+    int x;
+    int y;
+    int v;
+    struct cell *next;
+} cell;
+
 void remove_dir(const char *path);
 void delay(int milli_seconds);
 int random_num(int min, int max);
@@ -35,5 +76,14 @@ void leaderBoard(char username[MAX_NAMES]);
 void game_setting(int user_mode, char username[MAX_NAMES]);
 void sortLB();
 void profile_menu(int user_mode, char username[MAX_NAMES]);
+void add_to_corridor(cell **corridor, int x, int y, int visible);
+int nothing_in(int x, int y, Room *rooms, int rooms_count);
+void add_door_to_room(char username[MAX_NAMES], int floor, int room, int door);
+void print_c(cell *c, char username[MAX_NAMES], int floor);
+void a_to_b(int **matrix, int org, int des, Room *rooms, int rooms_count, char username[MAX_NAMES], int floor);
+void print_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor);
+int is_overlapping(Room a, Room b);
+void generate_map(char username[MAX_NAMES], int p);
+void New_Game(int user_mode, char username[MAX_NAMES]);
 
 #endif

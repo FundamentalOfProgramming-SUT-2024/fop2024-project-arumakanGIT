@@ -492,8 +492,15 @@ void UseColor()
     init_pair(11, 11, COLOR_BLACK);
     // cyan inverse
     init_pair(12, COLOR_BLACK, COLOR_CYAN);
+
     // cyan
     init_pair(13, COLOR_CYAN, COLOR_BLACK);
+    // bronze
+    init_pair(14, 11, COLOR_BLACK);
+    // Red
+    init_pair(15, COLOR_RED, COLOR_BLACK);
+    // Green
+    init_pair(16, COLOR_GREEN, COLOR_BLACK);
 
     // gold revers
     init_pair(5, COLOR_BLACK, 9);
@@ -1929,7 +1936,7 @@ void printTable(int big, int x, int y, int users_count, int tabs[])
     mvprintw(y - 15, lineX + 12 + big, "Score");
     mvprintw(y - 15, lineX + 21 + big, "Golds");
     mvprintw(y - 15, lineX + 30 + big, "Games");
-    mvprintw(y - 15, lineX + 38 + big, "ex");
+    mvprintw(y - 15, lineX + 38 + big, "XP");
     attroff(COLOR_PAIR(2) | A_BOLD);
 }
 
@@ -2942,4 +2949,1214 @@ void profile_menu(int user_mode, char username[MAX_NAMES])
             else if (ch == KEY_DOWN || ch == '\n')
                 p = (p + 1) % 3;
     }
+}
+
+void add_to_corridor(cell **corridor, int x, int y, int visible)
+{
+    if (*corridor && (*corridor)->next)
+        if ((*corridor)->next->x == x && (*corridor)->next->y == y)
+        {
+            cell *temp = (*corridor)->next;
+            *corridor = temp->next;
+            free(temp);
+            return;
+        }
+
+    if (*corridor && (*corridor)->x == x && (*corridor)->y == y)
+        return;
+
+    cell *newCell = (cell *)malloc(sizeof(cell));
+    newCell->x = x;
+    newCell->y = y;
+    newCell->v = visible;
+    newCell->next = *corridor;
+    *corridor = newCell;
+}
+
+int nothing_in(int x, int y, Room *rooms, int rooms_count)
+{
+    int check = -1;
+    for (int i = 0; i < rooms_count; i++)
+        if ((x >= rooms[i].x - 1 && x <= rooms[i].x + rooms[i].w + 1) && (y >= rooms[i].y - 1 && y <= rooms[i].y + rooms[i].h + 1))
+            check = i;
+
+    return check;
+}
+
+void add_door_to_room(char username[MAX_NAMES], int floor, int room, int door)
+{
+    char path[MAX_LINE];
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, floor);
+    FILE *read = fopen(path, "r");
+    int vd[4];
+    int rooms_count;
+    fscanf(read, "%d\n", &rooms_count);
+    Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+    for (int i = 0; i < rooms_count; i++)
+    {
+        fscanf(read, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
+        if (i == room)
+        {
+            vd[0] = rooms[i].tv;
+            vd[1] = rooms[i].dv;
+            vd[2] = rooms[i].rv;
+            vd[3] = rooms[i].lv;
+        }
+    }
+    if (!vd[door])
+        vd[door] = 1;
+    fclose(read);
+    rooms[room].tv = vd[0];
+    rooms[room].dv = vd[1];
+    rooms[room].rv = vd[2];
+    rooms[room].lv = vd[3];
+
+    FILE *write = fopen(path, "w");
+    fprintf(write, "%d\n", rooms_count);
+    for (int i = 0; i < rooms_count; i++)
+        fprintf(read, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
+    fclose(write);
+    free(rooms);
+}
+
+void print_c(cell *c, char username[MAX_NAMES], int floor)
+{
+    char path[MAX_LINE];
+    sprintf(path, "./.users/%s/~NEW_GAME/cells_%d.txt", username, floor);
+    FILE *file = fopen(path, "a");
+    while (c != NULL)
+    {
+        fprintf(file, "%d %d %d\n", c->x, c->y, c->v);
+        c = c->next;
+    }
+    fclose(file);
+}
+
+void a_to_b(int **matrix, int org, int des, Room *rooms, int rooms_count, char username[MAX_NAMES], int floor)
+{
+    cell *c = (cell *)malloc(sizeof(cell));
+    // char path[MAX_LINE];
+    // sprintf(path, "./.users/%s/~NEW_GAME/cells_%d.txt", username, floor);
+    // FILE *write_cell = fopen(path, "a");
+
+    if (matrix[org][des])
+        return;
+
+    // room[0] -> room[1]
+    // if (org == 0 && des == 1)
+    // {
+
+    // should go left
+    if (rooms[des].x + rooms[des].w <= rooms[org].x - 3)
+    {
+        c->x = rooms[org].x - 1;
+        c->y = rooms[org].y + rooms[org].left_door;
+        c->v = 0;
+        c->next = NULL;
+        add_to_corridor(&c, c->x - 1, c->y, 0);
+        // fprintf(write_cell, "%d %d\n", c->x + 1, c->y);
+        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+        while ((c->x != rooms[des].x + rooms[des].w + 2 || c->y != rooms[des].y + rooms[des].right_door))
+        {
+
+            // go left
+            if (c->x > rooms[des].x + rooms[des].w + 2)
+            {
+                int obstacle = nothing_in(c->x - 1, c->y, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x - 1, c->y, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].y + rooms[obstacle].right_door > c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y + 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].y + rooms[obstacle].right_door < c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y - 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x - 1, c->y, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 3);
+                    add_door_to_room(username, floor, obstacle, 2);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go up
+            else if (c->y > rooms[des].y + rooms[des].right_door)
+            {
+                int obstacle = nothing_in(c->x, c->y - 1, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x, c->y - 1, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].x + rooms[obstacle].down_door > c->x)
+                        {
+                            add_to_corridor(&c, c->x + 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].x + rooms[obstacle].down_door < c->x)
+                        {
+                            add_to_corridor(&c, c->x - 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x, c->y - 1, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 3);
+                    add_door_to_room(username, floor, obstacle, 1);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go down
+            else if (c->y < rooms[des].y + rooms[des].right_door)
+            {
+                int obstacle = nothing_in(c->x, c->y + 1, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x, c->y + 1, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].x + rooms[obstacle].top_door > c->x)
+                        {
+                            add_to_corridor(&c, c->x + 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].x + rooms[obstacle].top_door < c->x)
+                        {
+                            add_to_corridor(&c, c->x - 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x, c->y + 1, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 3);
+                    add_door_to_room(username, floor, obstacle, 0);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            else
+                break;
+        }
+        add_to_corridor(&c, c->x - 1, c->y, 0);
+        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+        add_door_to_room(username, floor, org, 3);
+        add_door_to_room(username, floor, des, 2);
+        matrix[org][des] = 1;
+        matrix[des][org] = 1;
+        print_c(c, username, floor);
+    }
+
+    // should go right
+    else if (rooms[des].x >= rooms[org].x + rooms[org].w + 3)
+    {
+        c->x = rooms[org].x + rooms[org].w + 1;
+        c->y = rooms[org].y + rooms[org].right_door;
+        c->v = 0;
+        c->next = NULL;
+        add_to_corridor(&c, c->x + 1, c->y, 0);
+        // fprintf(write_cell, "%d %d\n", c->x - 1, c->y);
+        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+        while ((c->x != rooms[des].x - 2 || c->y != rooms[des].y + rooms[des].left_door))
+        {
+
+            // go right
+            if (c->x < rooms[des].x - 2)
+            {
+                int obstacle = nothing_in(c->x + 1, c->y, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x + 1, c->y, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].y + rooms[obstacle].left_door > c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y + 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].y + rooms[obstacle].left_door < c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y - 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x + 1, c->y, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 2);
+                    add_door_to_room(username, floor, obstacle, 3);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go up
+            else if (c->y > rooms[des].y + rooms[des].left_door)
+            {
+                int obstacle = nothing_in(c->x, c->y - 1, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x, c->y - 1, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].x + rooms[obstacle].down_door > c->x)
+                        {
+                            add_to_corridor(&c, c->x + 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].x + rooms[obstacle].down_door < c->x)
+                        {
+                            add_to_corridor(&c, c->x - 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x, c->y - 1, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 2);
+                    add_door_to_room(username, floor, obstacle, 1);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go down
+            else if (c->y < rooms[des].y + rooms[des].left_door)
+            {
+                int obstacle = nothing_in(c->x, c->y + 1, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x, c->y + 1, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].x + rooms[obstacle].top_door > c->x)
+                        {
+                            add_to_corridor(&c, c->x + 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].x + rooms[obstacle].top_door < c->x)
+                        {
+                            add_to_corridor(&c, c->x - 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x, c->y + 1, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 2);
+                    add_door_to_room(username, floor, obstacle, 0);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            else
+                break;
+        }
+        add_to_corridor(&c, c->x + 1, c->y, 0);
+        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+        add_door_to_room(username, floor, org, 2);
+        add_door_to_room(username, floor, des, 3);
+        matrix[org][des] = 1;
+        matrix[des][org] = 1;
+        print_c(c, username, floor);
+    }
+
+    // should go down
+    else if (rooms[des].y - 3 >= rooms[org].y + rooms[org].h)
+    {
+        c->x = rooms[org].x + rooms[org].down_door;
+        c->y = rooms[org].y + rooms[org].h + 1;
+        c->v = 0;
+        c->next = NULL;
+        add_to_corridor(&c, c->x, c->y + 1, 0);
+        // fprintf(write_cell, "%d %d\n", c->x, c->y - 1);
+        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+
+        while ((c->x != rooms[des].x + rooms[des].top_door || c->y != rooms[des].y - 2))
+        {
+
+            // go left
+            if (c->x > rooms[des].x + rooms[des].top_door)
+            {
+                int obstacle = nothing_in(c->x - 1, c->y, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x - 1, c->y, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].y + rooms[obstacle].right_door > c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y + 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].y + rooms[obstacle].right_door < c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y - 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x - 1, c->y, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 1);
+                    add_door_to_room(username, floor, obstacle, 2);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go right
+            else if (c->x < rooms[des].x + rooms[des].top_door)
+            {
+                int obstacle = nothing_in(c->x + 1, c->y, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x + 1, c->y, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].y + rooms[obstacle].left_door > c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y + 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].y + rooms[obstacle].left_door < c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y - 1, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x + 1, c->y, 0);
+                        // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 1);
+                    add_door_to_room(username, floor, obstacle, 3);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go down
+            else if (c->y < rooms[des].y)
+            {
+                int obstacle = nothing_in(c->x, c->y + 1, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x, c->y + 1, 0);
+                    // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].x + rooms[obstacle].top_door > c->x)
+                        {
+                            add_to_corridor(&c, c->x + 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        while (rooms[obstacle].x + rooms[obstacle].top_door < c->x)
+                        {
+                            add_to_corridor(&c, c->x - 1, c->y, 0);
+                            // fprintf(write_cell, "%d %d\n", c->x, c->y);
+                        }
+                        add_to_corridor(&c, c->x, c->y + 1, 0);
+                    }
+                    add_door_to_room(username, floor, org, 1);
+                    add_door_to_room(username, floor, obstacle, 0);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+            else
+                break;
+        }
+        add_to_corridor(&c, c->x, c->y + 1, 0);
+
+        add_door_to_room(username, floor, org, 1);
+        add_door_to_room(username, floor, des, 0);
+        matrix[org][des] = 1;
+        matrix[des][org] = 1;
+        print_c(c, username, floor);
+    }
+
+    // should go up
+    else if (rooms[des].y + rooms[des].h + 3 <= rooms[org].y)
+    {
+        c->x = rooms[org].x + rooms[org].top_door;
+        c->y = rooms[org].y - 1;
+        c->v = 0;
+        c->next = NULL;
+        add_to_corridor(&c, c->x, c->y - 1, 0);
+
+        while ((c->x != rooms[des].x + rooms[des].down_door || c->y != rooms[des].y - 2))
+        {
+
+            // go left
+            if (c->x > rooms[des].x + rooms[des].down_door)
+            {
+                int obstacle = nothing_in(c->x - 1, c->y, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x - 1, c->y, 0);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].y + rooms[obstacle].right_door > c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y + 1, 0);
+                        }
+                        while (rooms[obstacle].y + rooms[obstacle].right_door < c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y - 1, 0);
+                        }
+                        add_to_corridor(&c, c->x - 1, c->y, 0);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 0);
+                    add_door_to_room(username, floor, obstacle, 2);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go right
+            else if (c->x < rooms[des].x + rooms[des].down_door)
+            {
+                int obstacle = nothing_in(c->x + 1, c->y, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x + 1, c->y, 0);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].y + rooms[obstacle].left_door > c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y + 1, 0);
+                        }
+                        while (rooms[obstacle].y + rooms[obstacle].left_door < c->y)
+                        {
+                            add_to_corridor(&c, c->x, c->y - 1, 0);
+                        }
+                        add_to_corridor(&c, c->x + 1, c->y, 0);
+                    }
+                    // fclose(write_cell);
+                    add_door_to_room(username, floor, org, 0);
+                    add_door_to_room(username, floor, obstacle, 3);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+
+            // go up
+            else if (c->y > rooms[des].y)
+            {
+                int obstacle = nothing_in(c->x, c->y - 1, rooms, rooms_count);
+                if (obstacle == -1)
+                {
+                    add_to_corridor(&c, c->x, c->y - 1, 0);
+                }
+                else
+                {
+                    if (!matrix[org][obstacle])
+                    {
+                        matrix[org][obstacle] = 1;
+                        matrix[obstacle][org] = 1;
+                        while (rooms[obstacle].x + rooms[obstacle].down_door > c->x)
+                        {
+                            add_to_corridor(&c, c->x + 1, c->y, 0);
+                        }
+                        while (rooms[obstacle].x + rooms[obstacle].down_door < c->x)
+                        {
+                            add_to_corridor(&c, c->x - 1, c->y, 0);
+                        }
+                        add_to_corridor(&c, c->x, c->y - 1, 0);
+                    }
+                    add_door_to_room(username, floor, org, 0);
+                    add_door_to_room(username, floor, obstacle, 1);
+                    print_c(c, username, floor);
+                    free(c);
+                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
+                    return;
+                }
+            }
+            else
+                break;
+        }
+        add_to_corridor(&c, c->x, c->y - 1, 0);
+        add_door_to_room(username, floor, org, 0);
+        add_door_to_room(username, floor, des, 1);
+        matrix[org][des] = 1;
+        matrix[des][org] = 1;
+        print_c(c, username, floor);
+    }
+}
+
+void print_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor)
+{
+    int **roads = (int **)malloc(sizeof(int *) * rooms_count);
+    for (int i = 0; i < rooms_count; i++)
+    {
+        roads[i] = (int *)malloc(sizeof(int) * rooms_count);
+        for (int j = 0; j < rooms_count; j++)
+            roads[i][j] = 0;
+    }
+
+    char path[MAX_NAMES];
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d.txt", username, floor);
+    FILE *read_file = fopen(path, "r");
+    char line[MAX_LINE];
+    while (fgets(line, sizeof(line), read_file))
+    {
+        int org = (int)(line[0] - '0');
+        int des = (int)(line[2] - '0');
+
+        if (roads[org][des])
+            continue;
+        else
+            a_to_b(roads, org, des, rooms, rooms_count, username, floor);
+    }
+    fclose(read_file);
+}
+
+int is_overlapping(Room a, Room b)
+{
+    int padding = 3;
+    return !(a.x + a.w + padding < b.x || b.x + b.w + padding < a.x || a.y + a.h + padding < b.y || b.y + b.h + padding < a.y);
+}
+
+void generate_map(char username[MAX_NAMES], int p)
+{
+    char path[MAX_LINE];
+    sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d.txt", username, p);
+    FILE *write_corridor = fopen(path, "w");
+
+    int padding = 3, r = 37, R = 30;
+    int rooms_count = random_num(6, 7);
+    Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+    int right_or_left = random_num(0, 1);
+    int resize = 0;
+
+    // room[0]
+    rooms[0].h = random_num(7, 12);
+    rooms[0].w = random_num(18, 25);
+    rooms[0].x = random_num(60 - (rooms[0].w / 2), 90 - (rooms[0].w / 2));
+    rooms[0].y = random_num(3, 36 - rooms[0].h - 1);
+
+    int room_ox = rooms[0].x + (rooms[0].w / 2), room_oy = rooms[0].y + (rooms[0].h / 2);
+
+    rooms[0].kind = 0;
+    int rk = random_num(1, 4);
+    if (rk == 2)
+        rooms[0].kind = 2;
+
+    rooms[0].visible = 0;
+    rooms[0].top_door = random_num(1, rooms[0].w - 2);
+    rooms[0].down_door = random_num(1, rooms[0].w - 2);
+    rooms[0].right_door = random_num(1, rooms[0].h - 2);
+    rooms[0].left_door = random_num(1, rooms[0].h - 2);
+    rooms[0].tv = 0;
+    rooms[0].dv = 0;
+    rooms[0].rv = 0;
+    rooms[0].lv = 0;
+
+    // room[1]
+    resize = 9;
+    while (1)
+    {
+        if (resize > 8)
+        {
+            rooms[1].h = random_num(6, 11);
+            rooms[1].w = random_num(17, 25);
+            resize = 0;
+        }
+
+        rooms[1].x = random_num(room_ox - r - (rooms[1].w / 2), room_ox);
+        rooms[1].y = random_num(room_oy - 15, room_oy + 15);
+
+        int ox = rooms[1].x + (rooms[1].w / 2);
+        int oy = rooms[1].y + (rooms[1].h / 2);
+
+        if (rooms[1].x < 10 || rooms[1].y + rooms[1].h > 36 || rooms[1].y < 3 || rooms[1].x + rooms[1].w > 144 ||
+            ((ox - room_ox) * (ox - room_ox)) + ((oy - room_oy) * (oy - room_oy) * 4) > (R * R))
+            continue;
+
+        int check = 1;
+        if (is_overlapping(rooms[0], rooms[1]))
+        {
+            resize++;
+            check = 0;
+            continue;
+        }
+
+        if (check)
+            break;
+    }
+
+    rooms[1].kind = 0;
+    rk = (rk + 1) % 4;
+    if (rk == 2)
+        rooms[1].kind = 2;
+
+    rooms[1].visible = 0;
+    rooms[1].top_door = random_num(1, rooms[1].w - 2);
+    rooms[1].down_door = random_num(1, rooms[1].w - 2);
+    rooms[1].right_door = random_num(1, rooms[1].h - 2);
+    rooms[1].left_door = random_num(1, rooms[1].h - 2);
+    rooms[1].tv = 0;
+    rooms[1].dv = 0;
+    rooms[1].rv = 0;
+    rooms[1].lv = 0;
+
+    fprintf(write_corridor, "0 1\n");
+
+    // room[2]
+    resize = 9;
+    while (1)
+    {
+        if (resize > 8)
+        {
+            rooms[2].h = random_num(6, 11);
+            rooms[2].w = random_num(16, 25);
+            resize = 0;
+        }
+
+        rooms[2].x = random_num(room_ox, room_ox + r + (rooms[2].w / 2));
+        rooms[2].y = random_num(room_oy - 11, room_oy + 11);
+
+        int ox = rooms[2].x + (rooms[2].w / 2);
+        int oy = rooms[2].y + (rooms[2].h / 2);
+
+        if (rooms[2].x < 10 || rooms[2].y + rooms[2].h > 36 || rooms[2].y < 3 || rooms[2].x + rooms[2].w > 144 ||
+            ((ox - room_ox) * (ox - room_ox)) + ((oy - room_oy) * (oy - room_oy) * 4) > (R * R))
+        {
+            resize++;
+            continue;
+        }
+
+        int check = 1;
+        for (int i = 0; i < 2; i++)
+            if (is_overlapping(rooms[i], rooms[2]))
+            {
+                resize++;
+                check = 0;
+                break;
+            }
+
+        if (check)
+            break;
+    }
+
+    rooms[2].kind = 0;
+    rk = (rk + 1) % 4;
+    if (rk == 2)
+        rooms[2].kind = 2;
+    rooms[2].visible = 0;
+    rooms[2].top_door = random_num(1, rooms[2].w - 2);
+    rooms[2].down_door = random_num(1, rooms[2].w - 2);
+    rooms[2].right_door = random_num(1, rooms[2].h - 2);
+    rooms[2].left_door = random_num(1, rooms[2].h - 2);
+    rooms[2].tv = 0;
+    rooms[2].dv = 0;
+    rooms[2].rv = 0;
+    rooms[2].lv = 0;
+
+    fprintf(write_corridor, "0 2\n");
+
+    // room[3]
+    resize = 9;
+    int attempts = 100;
+    while (attempts--)
+    {
+        if (resize > 8)
+        {
+            rooms[3].h = random_num(5, 8);
+            rooms[3].w = random_num(15, 25);
+            resize = 0;
+        }
+
+        rooms[3].x = random_num(rooms[2].x + (rooms[2].w / 2) - 27 - (rooms[3].w / 2), rooms[2].x + (rooms[2].w / 2) + 27 + (rooms[3].w / 2));
+        rooms[3].y = random_num(rooms[2].y + (rooms[2].h / 2) - 15, rooms[2].y + (rooms[2].h / 2) + 15);
+
+        int ox = rooms[3].x + (rooms[3].w / 2);
+        int oy = rooms[3].y + (rooms[3].h / 2);
+
+        if (rooms[3].x < 10 || rooms[3].y + rooms[3].h > 36 || rooms[3].y < 3 || rooms[3].x + rooms[3].w > 144)
+            continue;
+
+        int dx = ox - (rooms[2].x + rooms[2].w / 2);
+        int dy = oy - (rooms[2].y + rooms[2].h / 2);
+
+        if ((dx * dx) + (4 * dy * dy) > (R * R))
+            continue;
+
+        int check = 1;
+        for (int i = 0; i < 3; i++)
+            if (is_overlapping(rooms[i], rooms[3]))
+            {
+                resize++;
+                check = 0;
+                break;
+            }
+
+        if (check)
+            break;
+    }
+
+    if (attempts <= 0)
+    {
+        // free(rooms);
+        generate_map(username, p);
+        return;
+    }
+
+    rooms[3].kind = 0;
+    rk = (rk + 1) % 4;
+    if (rk == 2)
+        rooms[3].kind = 2;
+    rooms[3].visible = 0;
+    rooms[3].top_door = random_num(1, rooms[3].w - 2);
+    rooms[3].down_door = random_num(1, rooms[3].w - 2);
+    rooms[3].right_door = random_num(1, rooms[3].h - 2);
+    rooms[3].left_door = random_num(1, rooms[3].h - 2);
+    rooms[3].tv = 0;
+    rooms[3].dv = 0;
+    rooms[3].rv = 0;
+    rooms[3].lv = 0;
+
+    fprintf(write_corridor, "2 3\n");
+
+    // room[4]
+    resize = 9;
+    attempts = 100;
+    while (attempts--)
+    {
+        if (resize > 8)
+        {
+            rooms[4].h = random_num(5, 7);
+            rooms[4].w = random_num(14, 25);
+            resize = 0;
+        }
+
+        rooms[4].x = random_num((rooms[1].x + rooms[1].w / 2) - 27 - (rooms[4].w / 2), (rooms[1].x + rooms[1].w / 2) + 27 + (rooms[4].w / 2));
+        rooms[4].y = random_num((rooms[1].y + rooms[1].h / 2) - 15, (rooms[1].y + rooms[1].h / 2) + 15);
+
+        int ox = rooms[4].x + (rooms[4].w / 2);
+        int oy = rooms[4].y + (rooms[4].h / 2);
+
+        if (rooms[4].x < 10 || rooms[4].y + rooms[4].h > 36 || rooms[4].y < 3 || rooms[4].x + rooms[4].w > 144)
+        {
+            resize++;
+            continue;
+        }
+
+        int dx = ox - (rooms[1].x + rooms[1].w / 2);
+        int dy = oy - (rooms[1].y + rooms[1].h / 2);
+
+        if ((dx * dx) + (4 * dy * dy) > (R * R))
+            continue;
+
+        int check = 1;
+        for (int i = 0; i < 4; i++)
+            if (is_overlapping(rooms[i], rooms[4]))
+            {
+                resize++;
+                check = 0;
+                break;
+            }
+
+        if (check)
+            break;
+    }
+
+    if (attempts <= 0)
+    {
+        // free(rooms);
+        generate_map(username, p);
+        return;
+    }
+
+    rooms[4].kind = 0;
+    rk = (rk + 1) % 4;
+    if (rk == 2)
+        rooms[4].kind = 2;
+    rooms[4].visible = 0;
+    rooms[4].top_door = random_num(1, rooms[4].w - 2);
+    rooms[4].down_door = random_num(1, rooms[4].w - 2);
+    rooms[4].right_door = random_num(1, rooms[4].h - 2);
+    rooms[4].left_door = random_num(1, rooms[4].h - 2);
+    rooms[4].tv = 0;
+    rooms[4].dv = 0;
+    rooms[4].rv = 0;
+    rooms[4].lv = 0;
+
+    fprintf(write_corridor, "1 4\n");
+
+    // room[5]
+
+    int target = random_num(1, 2);
+
+    resize = 9;
+    attempts = 100;
+
+    while (attempts--)
+    {
+        if (resize > 8)
+        {
+            rooms[5].h = random_num(4, 6);
+            rooms[5].w = random_num(13, 25);
+            resize = 0;
+        }
+
+        rooms[5].x = random_num(rooms[target].x + (rooms[target].w / 2) - 27 - (rooms[5].w / 2), rooms[target].x + (rooms[target].w / 2) + 27 + (rooms[5].w / 2));
+        rooms[5].y = random_num(rooms[target].y + (rooms[target].h / 2) - 15, rooms[target].y + (rooms[target].h / 2) + 15);
+
+        int ox = rooms[5].x + (rooms[5].w / 2);
+        int oy = rooms[5].y + (rooms[5].h / 2);
+
+        if (rooms[5].x < 10 || rooms[5].y + rooms[5].h > 36 || rooms[5].y < 3 || rooms[5].x + rooms[5].w > 144)
+            continue;
+
+        int dx = ox - (rooms[target].x + rooms[target].w / 2);
+        int dy = oy - (rooms[target].y + rooms[target].h / 2);
+
+        if ((dx * dx) + (4 * dy * dy) > (R * R))
+            continue;
+
+        int check = 1;
+        for (int i = 0; i < 5; i++)
+            if (is_overlapping(rooms[i], rooms[5]))
+            {
+                resize++;
+                check = 0;
+                break;
+            }
+        if (check)
+            break;
+    }
+
+    if (attempts <= 0)
+    {
+        generate_map(username, p);
+        return;
+    }
+
+    rooms[5].kind = 0;
+    rk = (rk + 1) % 4;
+    if (rk == 2)
+        rooms[5].kind = 2;
+    rooms[5].visible = 0;
+    rooms[5].top_door = random_num(1, rooms[5].w - 2);
+    rooms[5].down_door = random_num(1, rooms[5].w - 2);
+    rooms[5].right_door = random_num(1, rooms[5].h - 2);
+    rooms[5].left_door = random_num(1, rooms[5].h - 2);
+    rooms[5].tv = 0;
+    rooms[5].dv = 0;
+    rooms[5].rv = 0;
+    rooms[5].lv = 0;
+
+    fprintf(write_corridor, "%d 5\n", target);
+
+    // room[6]
+    if (rooms_count == 7)
+    {
+        resize = 9;
+        attempts = 100;
+        while (attempts--)
+        {
+            if (resize > 8)
+            {
+                rooms[6].h = random_num(5, 6);
+                rooms[6].w = random_num(12, 25);
+                resize = 0;
+            }
+
+            rooms[6].x = random_num(room_ox - 15 - (rooms[6].w / 2), room_ox + 15 + (rooms[6].w / 2));
+            rooms[6].y = random_num(room_oy - 15, room_oy + 15);
+
+            int ox = rooms[6].x + (rooms[6].w / 2);
+            int oy = rooms[6].y + (rooms[6].h / 2);
+
+            if (rooms[6].x < 10 || rooms[6].y + rooms[6].h > 36 || rooms[6].y < 3 || rooms[6].x + rooms[6].w > 144)
+                continue;
+
+            int dx = ox - room_ox;
+            int dy = oy - room_oy;
+
+            if ((dx * dx) + (4 * dy * dy) > (R * R))
+                continue;
+
+            int check = 1;
+            for (int i = 0; i < 6; i++)
+                if (is_overlapping(rooms[i], rooms[6]))
+                {
+                    resize++;
+                    check = 0;
+                    break;
+                }
+
+            if (check)
+                break;
+        }
+
+        if (attempts <= 0)
+        {
+            generate_map(username, p);
+            return;
+        }
+
+        rooms[6].kind = 0;
+        rk = random_num(1, 4);
+        if (rk == 2)
+            rooms[6].kind = 2;
+        rooms[6].visible = 0;
+        rooms[6].top_door = random_num(1, rooms[6].w - 2);
+        rooms[6].down_door = random_num(1, rooms[6].w - 2);
+        rooms[6].right_door = random_num(1, rooms[6].h - 2);
+        rooms[6].left_door = random_num(1, rooms[6].h - 2);
+        rooms[6].tv = 0;
+        rooms[6].dv = 0;
+        rooms[6].rv = 0;
+        rooms[6].lv = 0;
+
+        int ox = rooms[6].x + (rooms[6].w / 2);
+        int oy = rooms[6].y + (rooms[6].h / 2);
+
+        int check = 1;
+        for (int i = 1; i < 6; i++)
+            if ((ox - rooms[i].x + (rooms[i].w / 2)) * (ox - rooms[i].x + (rooms[i].w / 2)) + ((oy - rooms[i].h + (rooms[i].h / 2)) * (oy - rooms[i].h + (rooms[i].h / 2))) > (R * R))
+            {
+                fprintf(write_corridor, "6 %d\n", i);
+                check = 0;
+            }
+
+        if (check)
+            fprintf(write_corridor, "0 6\n");
+    }
+
+    fclose(write_corridor);
+
+    if (p == 0)
+    {
+        int x_player, y_player, t = random_num(0, 2);
+        x_player = random_num(rooms[t].x + 1, rooms[t].x + rooms[t].w - 1);
+        y_player = random_num(rooms[t].y + 1, rooms[t].y + rooms[t].h - 1);
+        rooms[t].visible = 1;
+        memset(path, 0, sizeof(path));
+        sprintf(path, "./.users/%s/~NEW_GAME/cs.txt", username);
+        FILE *cs = fopen(path, "w");
+        fprintf(cs, "%d %d\n%d\n%d\n%d\n%d\n%d", x_player, y_player, 0, 100, 100, t, random_num(3, 4));
+        fclose(cs);
+    }
+
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, p);
+    FILE *write_floor = fopen(path, "w");
+    fprintf(write_floor, "%d\n", rooms_count);
+    for (int k = 0; k < rooms_count; k++)
+        fprintf(write_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[k].x, rooms[k].y, rooms[k].h, rooms[k].w, rooms[k].visible, rooms[k].kind, rooms[k].top_door, rooms[k].down_door, rooms[k].right_door, rooms[k].left_door, rooms[k].tv, rooms[k].dv, rooms[k].rv, rooms[k].lv);
+    fclose(write_floor);
+
+    print_corridor(rooms_count, rooms, username, p);
+
+    free(rooms);
+}
+
+void New_Game(int user_mode, char username[MAX_NAMES])
+{
+    UseColor();
+    int scrY, scrX;
+    getmaxyx(stdscr, scrY, scrX);
+    int dx = scrX / 2, dy = scrY / 2;
+
+    char path[MAX_LINE];
+    int ch, p = 0;
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME", username);
+
+    if (access(path, F_OK) != 0)
+    {
+        DIR *dir = opendir(path);
+        mkdir(path, 0777);
+        closedir(dir);
+
+        int difficulty;
+        memset(path, 0, sizeof(path));
+        sprintf(path, "./.users/%s/GameSetting.txt", username);
+        FILE *rgs = fopen(path, "r");
+        fscanf(rgs, "%d\n%*d\n%*d\n%*d", &difficulty);
+        fclose(rgs);
+
+        int floor;
+        if (difficulty == 0)
+            floor = 4;
+        else if (difficulty == 1)
+            floor = random_num(5, 6);
+        else if (difficulty == 2)
+            floor = 7;
+        else if (difficulty == 3)
+            floor = 1;
+
+        attron(COLOR_PAIR(9) | A_BOLD);
+        mvprintw(dy - 3, dx - 22, "Wizards are writing the fate of this land..");
+        attroff(COLOR_PAIR(9) | A_BOLD);
+
+        attron((COLOR_PAIR(9) | A_BOLD | A_BLINK));
+        mvprintw(dy - 3, dx + 21, ".");
+        attroff((COLOR_PAIR(9) | A_BOLD | A_BLINK));
+
+        attron(COLOR_PAIR(8));
+        printBoard(0, 0, 3, (floor + 2) * 3 + 4);
+        attroff(COLOR_PAIR(8));
+
+        attron(COLOR_PAIR(13));
+        mvprintw(dy + 3, dx - 13, "Please wait a few moments!");
+        attroff(COLOR_PAIR(13));
+
+        refresh();
+
+        memset(path, 0, sizeof(path));
+        sprintf(path, "./.users/%s/~NEW_GAME/cs.txt", username);
+        FILE *cs = fopen(path, "r");
+        int treasure;
+        fscanf(cs, "%*d %*d\n%*d\n%*d\n%*d\n%*d\n%d", &treasure);
+        fclose(cs);
+
+        for (int i = 0; i < floor; i++)
+        {
+            generate_map(username, i);
+            attron(COLOR_PAIR(4));
+            mvprintw(dy, dx - ((floor + 2) / 2 * 3) + (i * 3), "\u2588\u2588\u2588");
+            attroff(COLOR_PAIR(4));
+            refresh();
+
+            memset(path, 0, sizeof(path));
+            sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, i);
+            FILE *lastfloor = fopen(path, "r");
+            int rooms_count;
+            fscanf(lastfloor, "%d\n", &rooms_count);
+            Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+            for (int k = 0; k < rooms_count; k++)
+                fscanf(lastfloor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[k].x, &rooms[k].y, &rooms[k].h, &rooms[k].w, &rooms[k].visible, &rooms[k].kind, &rooms[k].top_door, &rooms[k].down_door, &rooms[k].right_door, &rooms[k].left_door, &rooms[k].tv, &rooms[k].dv, &rooms[k].rv, &rooms[k].lv);
+            fclose(lastfloor);
+
+            int enchant = random_num(0, 2);
+            for (int l = 0; l < rooms_count; l++)
+                if ((rooms[l].tv + rooms[l].dv + rooms[l].lv + rooms[l].rv == 1) && enchant++ == 1)
+                    rooms[l].kind = 1;
+            
+            if (i == floor - 1)
+            {
+                rooms[0].visible = 1;
+                rooms[treasure].kind = 3;
+            }
+            else
+                rooms[treasure].visible = 1;
+
+            FILE *new = fopen(path, "w");
+            fprintf(new, "%d\n", rooms_count);
+            for (int k = 0; k < rooms_count; k++)
+                fprintf(new, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[k].x, rooms[k].y, rooms[k].h, rooms[k].w, rooms[k].visible, rooms[k].kind, rooms[k].top_door, rooms[k].down_door, rooms[k].right_door, rooms[k].left_door, rooms[k].tv, rooms[k].dv, rooms[k].rv, rooms[k].lv);
+            fclose(new);
+        }
+    }
+
+    clear();
+    refresh();
+    flushinp();
 }

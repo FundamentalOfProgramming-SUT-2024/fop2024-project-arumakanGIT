@@ -26,70 +26,6 @@
 #define LIMIT_INPUT 25
 
 /*
-void EditGamesInfo(char username[MAX_NAMES])
-{
-    FILE *read;
-    read = fopen("./.users/Login.txt", "r");
-    int users_count;
-    fscanf(read, "%d\n", &users_count);
-    int target_index;
-    char names[users_count][MAX_NAMES], password[users_count][MAX_NAMES], email[users_count][MAX_NAMES];
-    for (int i = 0; i < users_count; i++)
-    {
-        fscanf(read, "%s %s %s\n", names[i], password[i], email[i]);
-        if (strcmp(names[i], username) == 0)
-            target_index = i;
-    }
-    fclose(read);
-
-    FILE *write;
-    write = fopen("./.users/Login.txt", "w");
-    fprintf(write, "%d\n", users_count);
-    fprintf(write, "%s %s %s\n", names[target_index], password[target_index], email[target_index]);
-    for (int i = 0; i < users_count; i++)
-        if (i != target_index)
-            fprintf(write, "%s %s %s\n", names[i], password[i], email[i]);
-    fclose(write);
-}
-*/
-
-/*
-void addToLogin(char username[MAX_NAMES], char password[MAX_NAMES], char email[MAX_NAMES])
-{
-    FILE *read;
-    read = fopen("./.users/Login.txt", "r");
-    int users_count;
-    fscanf(read, "%d\n", &users_count);
-    char un[users_count][MAX_NAMES], pw[users_count][MAX_NAMES], em[users_count][MAX_NAMES];
-    for (int i = 0; i < users_count; i++)
-        fscanf(read, "%s %s %s\n", un[i], pw[i], em[i]);
-    fclose(read);
-
-    FILE *write;
-    write = fopen("./.users/Login.txt", "w");
-    fprintf(write, "%d\n", users_count + 1);
-    fprintf(write, "%s %s %s\n", username, encrypt(password, username), email);
-    for (int i = 0; i < users_count; i++)
-        fprintf(write, "%s %s %s\n", un[i], pw[i], em[i]);
-    fclose(write);
-}
-*/
-
-// ʘ
-// ۩
-// ߷
-// ౷
-// ࿈
-// ࿅
-// ᛸ
-// ࿋
-// ࿕
-// ᛟ
-// ψ
-// ░ ░ ░
-
-/*
-XP > level
 1 = inverse
 2 = default
 3 = red inverse
@@ -111,76 +47,15 @@ XP > level
 25 = purple
  */
 
-typedef struct Node
-{
-    int x;
-    int y;
-    int health;
-    int hungry;
-    int golds;
-    int XP;
-    int score;
-    int foods[5];
-    int weapons[5];
-} Node;
-
-typedef struct Room
-{
-    int x;
-    int y;
-    int h;
-    int w;
-    int visible;
-    int kind;
-
-    int tv;
-    int dv;
-    int rv;
-    int lv;
-    int top_door;
-    int down_door;
-    int right_door;
-    int left_door;
-} Room;
-
-typedef struct Floor
-{
-    int f;
-    int rooms_count;
-    Room *rooms;
-} Floor;
-
-typedef struct cell
-{
-    int x;
-    int y;
-    int v;
-    struct cell *next;
-} cell;
-
-void add_to_corridor(cell **corridor, int x, int y, int visible, int *count)
-{
-    if ((*corridor)->next->x == x && (*corridor)->next->y == y)
-        *corridor = (*corridor)->next->next;
-
-    cell *newCell = (cell *)malloc(sizeof(cell));
-    newCell->x = x;
-    newCell->y = y;
-    newCell->v = visible;
-    newCell->next = *corridor;
-    *corridor = newCell;
-}
-
 void printRoom(Room r)
 {
-#pragma region add windows and doors
-    // if (!r.visible)
-    // return;
+    if (!r.visible)
+        return;
 
     int kind = r.kind, y = r.y, x = r.x, h = r.h, w = r.w, td = r.top_door, dd = r.down_door, rd = r.right_door, ld = r.right_door;
-    char line_down[7], line_top[7], right_down[7], row_left[7], row_right[7], right_top[7], left_top[7], left_down[7], dots[w - 1], hd[7], vd[7];
-    dots[w - 2] = '\0';
-    memset(dots, '.', w - 2);
+    char line_down[7], line_top[7], right_down[7], row_right[7], right_top[7], left_top[7], left_down[7], dots[w - 1], hd[7], vd[7];
+    dots[w - 1] = '\0';
+    memset(dots, '.', w - 1);
 
     strcpy(hd, "\u25AC");
     strcpy(vd, "\u25AE");
@@ -190,7 +65,7 @@ void printRoom(Room r)
     strcpy(right_down, "\u2598");
     strcpy(left_down, "\u259D");
 
-    strcpy(row_left, "\u2590");
+    // strcpy(row_left, "\u2590");
     strcpy(row_right, "\u258C");
 
     strcpy(line_top, "\u2580");
@@ -217,1425 +92,94 @@ void printRoom(Room r)
     for (int i = y + 1; i < y + h; i++)
         mvprintw(i, x + 1, "%s", dots);
     attroff(COLOR_PAIR(8));
+
+    attron(COLOR_PAIR(2));
+    if (r.tv)
+        mvprintw(r.y, r.x + r.top_door, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y, r.x + r.top_door, ".");
+
+    if (r.dv)
+        mvprintw(r.y + r.h, r.x + r.down_door, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y + r.h, r.x + r.down_door, ".");
+
+    if (r.rv)
+        mvprintw(r.y + r.right_door, r.x + r.w, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y + r.right_door, r.x + r.w, ".");
+    if (r.lv)
+        mvprintw(r.y + r.left_door, r.x, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y + r.left_door, r.x, ".");
+
+    attroff(COLOR_PAIR(2));
 }
 
-int nothing_in(int x, int y, Room *rooms, int rooms_count)
+void wprintRoom(Room r, WINDOW *win)
 {
-    int check = -1;
-    for (int i = 0; i < rooms_count; i++)
-        if ((x >= rooms[i].x - 1 && x <= rooms[i].x + rooms[i].w + 1) && (y >= rooms[i].y - 1 && y <= rooms[i].y + rooms[i].h + 1))
-            check = i;
+    int kind = r.kind, y = r.y, x = r.x, h = r.h, w = r.w, td = r.top_door, dd = r.down_door, rd = r.right_door, ld = r.right_door;
+    char line_down[7], line_top[7], right_down[7], row_right[7], right_top[7], left_top[7], left_down[7], dots[w - 1], hd[7], vd[7];
+    dots[w - 1] = '\0';
+    memset(dots, '.', w - 1);
 
-    return check;
-}
+    strcpy(hd, "\u25AC");
+    strcpy(vd, "\u25AE");
 
-void add_door_to_room(char username[MAX_NAMES], int floor, int room, int door)
-{
-    char path[MAX_LINE];
-    memset(path, 0, sizeof(path));
-    sprintf(path, "./.users/%s/~NEW_GAME/floor_%d", username, floor);
-    FILE *read = fopen(path, "r");
-    int vd[4];
-    int rooms_count;
-    fscanf(read, "%d\n", &rooms_count);
-    Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
-    for (int i = 0; i < rooms_count; i++)
+    strcpy(right_top, "\u2596");
+    strcpy(left_top, "\u2597");
+    strcpy(right_down, "\u2598");
+    strcpy(left_down, "\u259D");
+
+    // strcpy(row_left, "\u2590");
+    strcpy(row_right, "\u258C");
+
+    strcpy(line_top, "\u2580");
+    strcpy(line_down, "\u2584");
+
+    init_pair(14, COLOR_GREEN, COLOR_BLACK);
+    attron(COLOR_PAIR(13 + kind));
+
+    mvwprintw(win, y, x + w, "%s", right_top);
+    for (int j = 0; j < w; j++)
     {
-        fscanf(read, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
-        if (i == room)
-        {
-            vd[0] = rooms[i].tv;
-            vd[1] = rooms[i].dv;
-            vd[2] = rooms[i].rv;
-            vd[3] = rooms[i].lv;
-        }
+        mvwprintw(win, y, x + j, "%s", line_down);
+        mvwprintw(win, y + h, x + j, "%s", line_top);
     }
-    if (!vd[door])
-        vd[door]++;
-    fclose(read);
-    vd[0] = rooms[room].tv;
-    vd[1] = rooms[room].dv;
-    vd[2] = rooms[room].rv;
-    vd[3] = rooms[room].lv;
+    mvwprintw(win, y + h, x + w, "%s", right_down);
 
-    FILE *write = fopen(path, "w");
-    fprintf(write, "%d\n", rooms_count);
-    for (int i = 0; i < rooms_count; i++)
-        fprintf(read, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
-    fclose(write);
-}
-
-void print_c(cell **c, char username[MAX_NAMES], int floor)
-{
-    cell *current = *c;
-    while (current != NULL)
+    for (int i = y + 1; i < y + h; i++)
     {
-        if (current->v)
-            mvprintw(current->y, current->x, "\u2591");
-        current = current->next;
+        mvwprintw(win, i, x, "%s", row_right);
+        mvwprintw(win, i, x + w, "%s", row_right);
     }
-
-    char path[MAX_LINE];
-    sprintf(path, "./users/%s/~NEW_GAME/corridor%d", username, floor);
-    FILE *file = fopen(path, "a");
-    while (*c != NULL)
-        fprintf(file, "%d %d %d\n", (*c)->x, (*c)->y, (*c)->v);
-    fclose(file);
-}
-
-void a_to_b(int **matrix, int org, int des, Room *rooms, int rooms_count, char username[MAX_NAMES], int floor)
-{
-    if (org == des)
-        return;
-
-    int visible = 1;
-    // road length
-    int *length;
-    *length = 0;
-
-    int org_ox = rooms[org].x + (rooms[org].w / 2);
-    int org_oy = rooms[org].y + (rooms[org].h / 2);
-    int des_ox = rooms[des].x + (rooms[des].w / 2);
-    int des_oy = rooms[des].y + (rooms[des].h / 2);
-
-    // quadrant 1
-    if (rooms[org].x + rooms[org].w + 3 < des_ox && rooms[org].y - 3 > des_oy)
-    {
-        // default = right door origin
-        int orgDoor_x = rooms[org].w + rooms[org].x + 1;
-        int orgDoor_y = rooms[org].y + rooms[org].right_door;
-        add_door_to_room(username, floor, org, 2);
-
-        // default = down door destination
-        int desDoor_x = rooms[des].x + rooms[des].down_door;
-        int desDoor_y = rooms[des].y + rooms[des].h + 2;
-        add_door_to_room(username, floor, des, 2);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            // should go right
-            if (c->x < desDoor_x)
-            {
-                int check = nothing_in(c->x + 1, c->y, rooms, rooms_count);
-                // go right
-                if (check == -1)
-                    add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].left_door;
-                        add_door_to_room(username, floor, obstacle, 3);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x + 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go up
-            else if (c->y > desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y - 1, rooms, rooms_count);
-                // go up
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y - 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].down_door;
-                        add_door_to_room(username, floor, obstacle, 1);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->y - 1;
-        print_c(&c, username, floor);
-        return;
-    }
-
-    // quadrant 2
-    else if (rooms[org].x - 3 > des_ox && rooms[org].y - 3 > des_oy)
-    {
-        // default = left door origin
-        int orgDoor_x = rooms[org].x - 1;
-        int orgDoor_y = rooms[org].y + rooms[org].left_door;
-        add_door_to_room(username, floor, org, 3);
-
-        // default = down door destination
-        int desDoor_x = rooms[des].x + rooms[des].down_door;
-        int desDoor_y = rooms[des].y + rooms[des].h + 2;
-        add_door_to_room(username, floor, des, 1);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            // should go left
-            if (c->x > desDoor_x)
-            {
-                int check = nothing_in(c->x - 1, c->y, rooms, rooms_count);
-                // go left
-                if (check == -1)
-                    add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-                // go up until can go left
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].right_door;
-                        add_door_to_room(username, floor, obstacle, 2);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x -= 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go up
-            else if (c->y > desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y - 1, rooms, rooms_count);
-                // go up
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y - 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].down_door;
-                        add_door_to_room(username, floor, obstacle, 1);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y -= 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->y - 1;
-        print_c(&c, username, floor);
-        return;
-    }
-
-    // quadrant 3
-    else if (rooms[org].x - 3 > des_ox && rooms[org].y + rooms[org].h + 3 < des_oy)
-    {
-        // default = left door origin
-        int orgDoor_x = rooms[org].x - 1;
-        int orgDoor_y = rooms[org].y + rooms[org].left_door;
-        add_door_to_room(username, floor, org, 3);
-
-        // default = top door destination
-        int desDoor_x = rooms[des].x + rooms[des].top_door;
-        int desDoor_y = rooms[des].y - 2;
-        add_door_to_room(username, floor, des, 0);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            // should go left
-            if (c->x > desDoor_x)
-            {
-                int check = nothing_in(c->x - 1, c->y, rooms, rooms_count);
-                // go left
-                if (check == -1)
-                    add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-                // go down until can go left
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].right_door;
-                        add_door_to_room(username, floor, obstacle, 2);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x -= 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go down
-            else if (c->y > desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y - 1, rooms, rooms_count);
-                // go down
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y - 1, visible, length);
-
-                // go left until can go down
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].down_door;
-                        add_door_to_room(username, floor, obstacle, 1);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y -= 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->y + 1;
-        print_c(&c, username, floor);
-        return;
-    }
-
-    // quadrant 4
-    else if (rooms[org].x + rooms[org].w + 3 < des_ox && rooms[org].y + rooms[org].h + 3 < des_oy)
-    {
-        // default = right door origin
-        int orgDoor_x = rooms[org].x + rooms[org].w + 1;
-        int orgDoor_y = rooms[org].y + rooms[org].right_door;
-        add_door_to_room(username, floor, org, 2);
-
-        // default = top door destination
-        int desDoor_x = rooms[des].x + rooms[des].top_door;
-        int desDoor_y = rooms[des].y - 2;
-        add_door_to_room(username, floor, des, 0);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            // should go right
-            if (c->x < desDoor_x)
-            {
-                int check = nothing_in(c->x + 1, c->y, rooms, rooms_count);
-                // go right
-                if (check == -1)
-                    add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-                // go down until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].left_door;
-                        add_door_to_room(username, floor, obstacle, 3);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x += 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go down
-            else if (c->y < desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y + 1, rooms, rooms_count);
-                // go down
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y + 1, visible, length);
-
-                // go left until can go down
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].down_door;
-                        add_door_to_room(username, floor, obstacle, 1);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y += 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->y + 1;
-        print_c(&c, username, floor);
-        return;
-    }
-
-    // RIGHT Horizontal line
-    else if (rooms[org].x + rooms[org].w + 3 < des_ox)
-    {
-        // default = right door origin
-        int orgDoor_x = rooms[org].w + rooms[org].x + 1;
-        int orgDoor_y = rooms[org].y + rooms[org].right_door;
-        add_door_to_room(username, floor, org, 2);
-
-        // default = right door destination
-        int desDoor_x = rooms[des].x - 1;
-        int desDoor_y = rooms[des].y + rooms[des].left_door;
-        add_door_to_room(username, floor, des, 3);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            // should go right
-            if (c->x < desDoor_x)
-            {
-                int check = nothing_in(c->x + 1, c->y, rooms, rooms_count);
-                // go right
-                if (check == -1)
-                    add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].left_door;
-                        add_door_to_room(username, floor, obstacle, 3);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x + 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go up
-            else if (c->y < desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y + 1, rooms, rooms_count);
-                // go up
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y + 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].top_door;
-                        add_door_to_room(username, floor, obstacle, 0);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y + 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go down
-            else if (c->y > desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y - 1, rooms, rooms_count);
-                // go up
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y - 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].down_door;
-                        add_door_to_room(username, floor, obstacle, 1);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->x + 1;
-        print_c(&c, username, floor);
-        return;
-    }
-
-    // LEFT Horizontal line
-    else if (rooms[org].x - 3 > des_ox)
-    {
-        // default = right door origin
-        int orgDoor_x = rooms[org].w + rooms[org].x - 1;
-        int orgDoor_y = rooms[org].y + rooms[org].left_door;
-        add_door_to_room(username, floor, org, 3);
-
-        // default = right door destination
-        int desDoor_x = rooms[des].x + 1;
-        int desDoor_y = rooms[des].y + rooms[des].right_door;
-        add_door_to_room(username, floor, des, 2);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            // should go left
-            if (c->x > desDoor_x)
-            {
-                int check = nothing_in(c->x - 1, c->y, rooms, rooms_count);
-                // go left
-                if (check == -1)
-                    add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].right_door;
-                        add_door_to_room(username, floor, obstacle, 2);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go up
-            else if (c->y < desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y + 1, rooms, rooms_count);
-                // go up
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y + 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].top_door;
-                        add_door_to_room(username, floor, obstacle, 0);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            // should go down
-            else if (c->y > desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y - 1, rooms, rooms_count);
-                // go up
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y - 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_x = rooms[obstacle].x + rooms[obstacle].down_door;
-                        add_door_to_room(username, floor, obstacle, 1);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_x > c->x)
-                            add_to_corridor(&c, c->x + 1, c->y, visible, length);
-                        while (obsDoor_x < c->x)
-                            add_to_corridor(&c, c->x - 1, c->y, visible, length);
-                        c->y - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->x + 1;
-        print_c(&c, username, floor);
-        return;
-    }
-
-    // DOWN vertical line
-    else if (rooms[org].y + rooms[org].h + 3 < des_oy)
-    {
-        // default = right door origin
-        int orgDoor_x = rooms[org].x + rooms[org].down_door;
-        int orgDoor_y = rooms[org].y + 2 + rooms[org].h;
-        add_door_to_room(username, floor, org, 1);
-
-        // default = right door destination
-        int desDoor_x = rooms[des].x + rooms[des].top_door;
-        int desDoor_y = rooms[des].y - 2;
-        add_door_to_room(username, floor, des, 0);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x, c->y + 1, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            // should go right
-            if (c->y < desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y + 1, rooms, rooms_count);
-                // go right
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y + 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].top_door;
-                        add_door_to_room(username, floor, obstacle, 0);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->y + 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            else if (c->x < desDoor_x)
-            {
-                int check = nothing_in(c->x + 1, c->y, rooms, rooms_count);
-
-                if (check == -1)
-                    add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].x + rooms[obstacle].left_door;
-                        add_door_to_room(username, floor, obstacle, 3);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->x)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x + 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            else if (c->x > desDoor_x)
-            {
-                int check = nothing_in(c->x - 1, c->y, rooms, rooms_count);
-
-                if (check == -1)
-                    add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].x + rooms[obstacle].right_door;
-                        add_door_to_room(username, floor, obstacle, 2);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->x)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->y + 1;
-        print_c(&c, username, floor);
-        return;
-    }
-
-    // UP vertical line
-    else if (rooms[org].y - 3 > des_oy)
-    {
-        // default = right door origin
-        int orgDoor_x = rooms[org].x + rooms[org].top_door;
-        int orgDoor_y = rooms[org].y - 2;
-        add_door_to_room(username, floor, org, 1);
-
-        // default = right door destination
-        int desDoor_x = rooms[des].x + rooms[des].down_door;
-        int desDoor_y = rooms[des].y + 2 + rooms[des].h;
-        add_door_to_room(username, floor, des, 0);
-
-        // start tracking to destination door from here
-        cell *c = (cell *)malloc(sizeof(cell));
-        c->x = orgDoor_x;
-        c->y = orgDoor_y;
-        c->v = visible;
-        c->next = NULL;
-        add_to_corridor(&c, c->x, c->y - 1, visible, length);
-
-        // int x_distance = desDoor_x - orgDoor_x;
-        // int y_distance = desDoor_y - orgDoor_y;
-
-        while (c->x != desDoor_x && c->y != desDoor_y)
-        {
-            int l = *length;
-
-            if (c->y > desDoor_y)
-            {
-                int check = nothing_in(c->x, c->y - 1, rooms, rooms_count);
-                // go right
-                if (check == -1)
-                    add_to_corridor(&c, c->x, c->y - 1, visible, length);
-
-                // go up until can go right
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].y + rooms[obstacle].down_door;
-                        add_door_to_room(username, floor, obstacle, 1);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->y)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->y - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            else if (c->x < desDoor_x)
-            {
-                int check = nothing_in(c->x + 1, c->y, rooms, rooms_count);
-
-                if (check == -1)
-                    add_to_corridor(&c, c->x + 1, c->y, visible, length);
-
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].x + rooms[obstacle].left_door;
-                        add_door_to_room(username, floor, obstacle, 3);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->x)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x + 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            else if (c->x > desDoor_x)
-            {
-                int check = nothing_in(c->x - 1, c->y, rooms, rooms_count);
-
-                if (check == -1)
-                    add_to_corridor(&c, c->x - 1, c->y, visible, length);
-
-                else
-                {
-                    int obstacle = check;
-                    if (!matrix[org][obstacle])
-                    {
-                        int obsDoor_y = rooms[obstacle].x + rooms[obstacle].right_door;
-                        add_door_to_room(username, floor, obstacle, 2);
-                        matrix[org][obstacle] = 1;
-                        matrix[obstacle][org] = 1;
-                        while (obsDoor_y > c->y)
-                            add_to_corridor(&c, c->x, c->y + 1, visible, length);
-                        while (obsDoor_y < c->x)
-                            add_to_corridor(&c, c->x, c->y - 1, visible, length);
-                        c->x - 1;
-                        print_c(&c, username, floor);
-                    }
-                    free(c);
-                    a_to_b(matrix, obstacle, des, rooms, rooms_count, username, floor);
-                    break;
-                }
-            }
-
-            if (*length > 150 || *length == l)
-                break;
-        }
-
-        c->y - 1;
-        print_c(&c, username, floor);
-        return;
-    }
-}
-
-void print_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor)
-{
-    int **roads = (int **)malloc(sizeof(int *) * rooms_count);
-    for (int i = 0; i < rooms_count; i++)
-    {
-        roads[i] = (int *)malloc(sizeof(int) * rooms_count);
-        for (int j = 0; j < rooms_count; j++)
-            roads[i][j] = 0;
-    }
-
-    char path[MAX_NAMES];
-    memset(path, 0, sizeof(path));
-    sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d", username, floor);
-    FILE *read_file = fopen(path, "r");
-    char line[MAX_LINE];
-    while (fgets(line, sizeof(line), read_file))
-    {
-        int org = (int)(line[0] - '0');
-        int des = (int)(line[2] - '0');
-
-        printw("%d %d", org, des);
-
-        // if (roads[org][des])
-        //     continue;
-        // else
-        // {
-        //     roads[org][des] = 1;
-        //     roads[des][org] = 1;
-        //     a_to_b(roads, org, des, rooms, rooms_count, username, floor);
-        // }
-    }
-}
-
-void dfs(int **neighbors, int *visited, int n, int node)
-{
-    visited[node] = 1;
-    for (int i = 0; i < n; i++)
-        if (neighbors[node][i] && !visited[i])
-            dfs(neighbors, visited, n, i);
-}
-
-/*
-int generate_corridor(int rooms_count, Room *rooms, char username[MAX_NAMES], int floor)
-{
-    int **neighbors = (int **)malloc(rooms_count * sizeof(int *));
-    for (int i = 0; i < rooms_count; i++)
-        neighbors[i] = (int *)calloc(rooms_count, sizeof(int));
-
-    for (int i = 0; i < rooms_count; i++)
-        for (int k = 0; k < rooms_count; k++)
-            if (i < k && abs((rooms[i].x + (rooms[i].w / 2)) - (rooms[k].x + (rooms[k].w / 2))) + (3 * abs((rooms[i].y + (rooms[i].h / 2)) - (rooms[k].y + (rooms[k].h / 2)))) < 55)
-            {
-                neighbors[i][k] = 1;
-                neighbors[k][i] = 1;
-            }
-
-    fclose(write);
-
-    int *visited = (int *)calloc(rooms_count, sizeof(int));
-
-    dfs(neighbors, visited, rooms_count, 0);
-
-    int is_connected = 1;
-    for (int i = 0; i < rooms_count; i++)
-        if (!visited[i])
-        {
-            is_connected = 0;
-            break;
-        }
-
-    free(visited);
-    for (int i = 0; i < rooms_count; i++)
-        free(neighbors[i]);
-    free(neighbors);
-
-    return is_connected;
-}
-*/
-
-void generate_map(char username[MAX_NAMES], int p)
-{
-    int padding = 3, rooms_count;
-    Room *rooms;
-    char path[MAX_LINE];
-
-    // Create Floor
-    // while (1)
-    // {
-    sprintf(path, "./.users/%s/~NEW_GAME/corridor_%d.txt", username, p);
-    FILE *write = fopen(path, "w");
-
-    // Create First Room
-    rooms_count = random_num(6, 7);
-    // printw("floor %d, rooms_count = %d", p, rooms_count);
-    rooms = (Room *)malloc(sizeof(Room) * rooms_count);
-
-    rooms[0].h = random_num(4, 6);
-    rooms[0].w = random_num(12, 25);
-
-    rooms[0].x = random_num(10, 144 - rooms[0].w);
-    rooms[0].y = random_num(3, 36 - rooms[0].h - 1);
-
-    rooms[0].visible = 0;
-    rooms[0].kind = 0;
-    rooms[0].top_door = random_num(0, rooms[0].w - 2);
-    rooms[0].down_door = random_num(0, rooms[0].w - 2);
-    rooms[0].right_door = random_num(0, rooms[0].h - 2);
-    rooms[0].left_door = random_num(0, rooms[0].h - 2);
-    rooms[0].tv = 0;
-    rooms[0].dv = 0;
-    rooms[0].rv = 0;
-    rooms[0].lv = 0;
-
-    // printRoom(rooms[0]);
-
-    int child = random_num(2, 3);
-    // printw(" --- rooms[0].h = %d, rooms[0].w = %d, rooms[0].x = %d, rooms[0].y = %d, rooms[0] child = %d\n", rooms[0].h, rooms[0].w, rooms[0].x, rooms[0].y, child);
-
-    // Create Child Rooms
-    for (int i = 1; i <= child; i++)
-    {
-        fprintf(write, "0 %d\n", i);
-        int resize = 6;
-        while (1)
-        {
-            if (resize > 5)
-            {
-                rooms[i].h = random_num(4 + (i / 2), 6 + i);
-                rooms[i].w = random_num(12 + i, 25);
-                resize = 0;
-            }
-
-            int min_x = 10;
-            int nmin_x = rooms[0].x + (rooms[0].w / 2) - 30 - (rooms[i].w / 2);
-            if (nmin_x > 10)
-                min_x = nmin_x;
-
-            int max_x = 144 - rooms[i].w;
-            int nmax_x = rooms[0].x + (rooms[0].w / 2) + 30 - (rooms[i].w / 2);
-            if (nmax_x < max_x)
-                max_x = nmax_x;
-
-            if (i == 2)
-                if (rooms[1].x + (rooms[1].w / 2) > rooms[0].x + (rooms[0].w / 2))
-                {
-                    nmax_x = (rooms[0].x - 10);
-                    if (nmax_x > rooms[1].w + padding)
-                        max_x = nmax_x;
-                }
-                else
-                {
-                    if (nmin_x = (144 - rooms[0].x) > rooms[1].w + padding)
-                        min_x = nmin_x;
-                }
-
-            int min_y = 3;
-            int nmin_y;
-            if ((nmin_y = rooms[0].y + (rooms[0].h / 2) - 15 - (rooms[i].h / 2)) > 3)
-                min_y = nmin_y;
-
-            int max_y = 36 - rooms[i].h - 1;
-            int nmax_y;
-            if ((nmax_y = rooms[0].y + (rooms[0].h / 2) + 15 - (rooms[i].h / 2)) < max_y)
-                max_y = nmax_y;
-
-            rooms[i].x = random_num(min_x, max_x);
-            rooms[i].y = random_num(min_y, max_y);
-
-            // printw(" --- %d : h = %d, w = %d, x = %d, y = %d, min_x = %d, max_x = %d, min_y = %d, max_y = %d", i, rooms[i].h, rooms[i].w, rooms[i].x, rooms[i].y, min_x, max_x, min_y, max_y);
-
-            int check = 1;
-            for (int j = 0; j < i && check; j++)
-                if (rooms[i].x >= rooms[j].x - padding - rooms[i].w - 1 && rooms[i].x <= rooms[j].x + rooms[j].w + padding && rooms[i].y >= rooms[j].y - padding - rooms[i].h - 1 && rooms[i].y <= rooms[j].y + rooms[j].h + padding)
-                    check = 0;
-
-            if (check)
-                break;
-            else
-                resize++;
-
-            // printw(" --- %d : resize++(%d)\n", i, resize);
-        }
-
-        rooms[i].visible = 0;
-        rooms[i].kind = 0;
-        rooms[i].top_door = random_num(0, rooms[i].w - 2);
-        rooms[i].down_door = random_num(0, rooms[i].w - 2);
-        rooms[i].right_door = random_num(0, rooms[i].h - 2);
-        rooms[i].left_door = random_num(0, rooms[i].h - 2);
-        rooms[i].tv = 0;
-        rooms[i].dv = 0;
-        rooms[i].rv = 0;
-        rooms[i].lv = 0;
-    }
-
-    // printRoom(rooms[1]);
-    // printRoom(rooms[2]);
-
-    // Create Sub Child
-    int subChild[child];
-
-    if (rooms_count == 7 && child == 2)
-        subChild[0] = 2;
-    else if (rooms_count == 7 && child == 3)
-        subChild[0] = 2;
-    else if (rooms_count == 6 && child == 2)
-        subChild[0] = 2;
-    else if (rooms_count == 6 && child == 3)
-        subChild[0] = 1;
-
-    // room[1]
-    for (int l = 1 + child; l < 1 + child + subChild[0]; l++)
-    {
-        // printw(" --- %d : h = %d, w = %d, x = %d, y = %d, min_x = %d, max_x = %d, min_y = %d, max_y = %d", i, rooms[i].h, rooms[i].w, rooms[i].x, rooms[i].y, min_x, max_x, min_y, max_y);
-        fprintf(write, "1 %d\n", l);
-        int resize = 6;
-        while (1)
-        {
-            if (resize > 5)
-            {
-                rooms[l].h = random_num(4 + (l / 2), 6 + l);
-                rooms[l].w = random_num(12 + l, 25);
-                resize = 0;
-            }
-
-            int min_x = 10;
-            int nmin_x;
-            if ((nmin_x = rooms[1].x + (rooms[1].w / 2) - 30 - (rooms[l].w / 2)) > 10)
-                min_x = nmin_x;
-            int max_x = 144 - rooms[l].w;
-            int nmax_x;
-            if ((nmax_x = rooms[1].x + (rooms[1].w / 2) + 30 - (rooms[l].w / 2)) < max_x)
-                max_x = nmax_x;
-
-            int min_y = 3;
-            int nmin_y;
-            if ((nmin_y = rooms[1].y + (rooms[1].h / 2) - 15 - (rooms[l].h / 2)) > 3)
-                min_y = nmin_y;
-
-            int max_y = 36 - rooms[l].h - 1;
-            int nmax_y;
-            if ((nmax_y = rooms[1].y + (rooms[1].h / 2) + 15 - (rooms[l].h / 2)) < max_y)
-                max_y = nmax_y;
-
-            rooms[l].x = random_num(min_x, max_x);
-            rooms[l].y = random_num(min_y, max_y);
-
-            int check = 1;
-            for (int j = 0; j < l && check; j++)
-                if (rooms[l].x >= rooms[j].x - padding - rooms[l].w - 1 && rooms[l].x <= rooms[j].x + rooms[j].w + padding && rooms[l].y >= rooms[j].y - padding - rooms[l].h - 1 && rooms[l].y <= rooms[j].y + rooms[j].h + padding)
-                    check = 0;
-
-            if (check)
-                break;
-            else
-                resize++;
-        }
-
-        rooms[l].visible = 0;
-        rooms[l].kind = 0;
-        rooms[l].top_door = random_num(0, rooms[l].w - 2);
-        rooms[l].down_door = random_num(0, rooms[l].w - 2);
-        rooms[l].right_door = random_num(0, rooms[l].h - 2);
-        rooms[l].left_door = random_num(0, rooms[l].h - 2);
-        rooms[l].tv = 0;
-        rooms[l].dv = 0;
-        rooms[l].rv = 0;
-        rooms[l].lv = 0;
-    }
-
-    // printRoom(rooms[3]);
-
-    // room[2]
-    for (int l = 1 + child + subChild[0]; l < rooms_count; l++)
-    {
-        fprintf(write, "2 %d\n", l);
-        int resize = 6;
-        while (1)
-        {
-            if (resize > 5)
-            {
-                rooms[l].h = random_num(4 + (l / 2), 6 + l);
-                rooms[l].w = random_num(12 + l, 25);
-                resize = 0;
-            }
-
-            int min_x = 10;
-            int nmin_x;
-            if ((nmin_x = rooms[2].x + (rooms[2].w / 2) - 30 - (rooms[l].w / 2)) > 10)
-                min_x = nmin_x;
-            int max_x = 144 - rooms[l].w;
-            int nmax_x;
-            if ((nmax_x = rooms[2].x + (rooms[2].w / 2) + 30 - (rooms[l].w / 2)) < max_x)
-                max_x = nmax_x;
-
-            int min_y = 3;
-            int nmin_y;
-            if ((nmin_y = rooms[2].y + (rooms[2].h / 2) - 15 - (rooms[l].h / 2)) > 3)
-                min_y = nmin_y;
-
-            int max_y = 36 - rooms[l].h - 1;
-            int nmax_y;
-            if ((nmax_y = rooms[2].y + (rooms[2].h / 2) + 15 - (rooms[l].h / 2)) < max_y)
-                max_y = nmax_y;
-
-            rooms[l].x = random_num(min_x, max_x);
-            rooms[l].y = random_num(min_y, max_y);
-
-            int check = 1;
-            for (int j = 0; j < l && check; j++)
-                if (rooms[l].x >= rooms[j].x - padding - rooms[l].w - 1 && rooms[l].x <= rooms[j].x + rooms[j].w + padding && rooms[l].y >= rooms[j].y - padding - rooms[l].h - 1 && rooms[l].y <= rooms[j].y + rooms[j].h + padding)
-                    check = 0;
-
-            if (check)
-                break;
-            else
-                resize++;
-        }
-
-        rooms[l].visible = 0;
-        rooms[l].kind = 0;
-        rooms[l].top_door = random_num(0, rooms[l].w - 2);
-        rooms[l].down_door = random_num(0, rooms[l].w - 2);
-        rooms[l].right_door = random_num(0, rooms[l].h - 2);
-        rooms[l].left_door = random_num(0, rooms[l].h - 2);
-        rooms[l].tv = 0;
-        rooms[l].dv = 0;
-        rooms[l].rv = 0;
-        rooms[l].lv = 0;
-    }
-
-    // printRoom(rooms[5]);
-    // printRoom(rooms[4]);
-    // if (rooms_count == 7)
-    // printRoom(rooms[6]);
-
-    fclose(write);
-    // break;
-    // }
-
-    // char path[MAX_LINE];
-    if (p == 0)
-    {
-        int x_player, y_player, r = random_num(5, rooms_count - 1);
-        x_player = random_num(rooms[r].x + 1, rooms[r].x + rooms[r].w - 1);
-        y_player = random_num(rooms[r].y + 1, rooms[r].y + rooms[r].h - 1);
-        memset(path, 0, sizeof(path));
-        sprintf(path, "./.users/%s/~NEW_GAME/cs.txt", username);
-        FILE *cs = fopen(path, "w");
-        fprintf(cs, "%d %d\n%d\n%d", x_player, y_player, 0, random_num(0, 4));
-        fclose(cs);
-    }
-
-    memset(path, 0, sizeof(path));
-    sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, p);
-    FILE *write_floor = fopen(path, "w");
-    fprintf(write_floor, "%d\n", rooms_count);
-    for (int k = 0; k < rooms_count; k++)
-        fprintf(write_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[k].x, rooms[k].y, rooms[k].h, rooms[k].w, rooms[k].visible, rooms[k].kind, rooms[k].top_door, rooms[k].down_door, rooms[k].right_door, rooms[k].left_door, rooms[k].tv, rooms[k].dv, rooms[k].rv, rooms[k].lv);
-    fclose(write_floor);
-
-    // print_corridor(rooms_count, rooms, username, p);
-
-    free(rooms);
-}
-
-void New_Game(int user_mode, char username[MAX_NAMES])
-{
-    UseColor();
-    int scrY, scrX;
-    getmaxyx(stdscr, scrY, scrX);
-    int dx = scrX / 2, dy = scrY / 2;
-
-    char path[MAX_LINE];
-    int ch, p = 0;
-    memset(path, 0, sizeof(path));
-    sprintf(path, "./.users/%s/~NEW_GAME", username);
-
-    if (access(path, F_OK) != 0)
-    {
-        DIR *dir = opendir(path);
-        mkdir(path, 0777);
-        closedir(dir);
-
-        int difficulty;
-        memset(path, 0, sizeof(path));
-        sprintf(path, "./.users/%s/GameSetting.txt", username);
-        FILE *rgs = fopen(path, "r");
-        fscanf(rgs, "%d\n%*d\n%*d\n%*d", &difficulty);
-        fclose(rgs);
-
-        int floor;
-        if (difficulty == 0)
-            floor = 4;
-        else if (difficulty == 1)
-            floor = random_num(5, 6);
-        else if (difficulty == 2)
-            floor = 7;
-        else if (difficulty == 3)
-            floor = 1;
-
-        attron(COLOR_PAIR(9) | A_BOLD);
-        mvprintw(dy - 3, dx - 22, "Wizards are writing the fate of this land..");
-        attroff(COLOR_PAIR(9) | A_BOLD);
-
-        attron((COLOR_PAIR(9) | A_BOLD | A_BLINK));
-        mvprintw(dy - 3, dx + 21, ".");
-        attroff((COLOR_PAIR(9) | A_BOLD | A_BLINK));
-
-        attron(COLOR_PAIR(8));
-        printBoard(0, 0, 3, (floor + 1) * 2 + 2);
-        attroff(COLOR_PAIR(8));
-
-        attron(COLOR_PAIR(13));
-        mvprintw(dy + 3, dx - 13, "Please wait a few moments!");
-        attroff(COLOR_PAIR(13));
-
-        refresh();
-
-        for (int i = 0; i < floor; i++)
-        {
-            mvprintw(dy, dx - floor + (i * 2), "\U0001F7E7");
-            refresh();
-            generate_map(username, i);
-        }
-    }
-
-    clear();
-    refresh();
-    flushinp();
+    attroff(COLOR_PAIR(13 + kind));
+    attron(COLOR_PAIR(8));
+    for (int i = y + 1; i < y + h; i++)
+        mvwprintw(win, i, x + 1, "%s", dots);
+    attroff(COLOR_PAIR(8));
+
+    attron(COLOR_PAIR(2));
+    if (r.tv)
+        mvwprintw(win, r.y, r.x + r.top_door, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y, r.x + r.top_door, ".");
+
+    if (r.dv)
+        mvwprintw(win, r.y + r.h, r.x + r.down_door, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y + r.h, r.x + r.down_door, ".");
+
+    if (r.rv)
+        mvwprintw(win, r.y + r.right_door, r.x + r.w, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y + r.right_door, r.x + r.w, ".");
+    if (r.lv)
+        mvwprintw(win, r.y + r.left_door, r.x, "\u2593");
+    // else if (random_num(0, 1))
+    // mvprintw(r.y + r.left_door, r.x, ".");
+
+    attroff(COLOR_PAIR(2));
 }
 
 void mv(int user_mode)
@@ -1653,30 +197,115 @@ void mv(int user_mode)
 
     printBoard(0, 0, 34, 140);
 
-    Node *player = (Node *)malloc(sizeof(Node));
-    player->x = x;
-    player->y = y;
+    Player *p = (Player *)malloc(sizeof(Player));
+    p->x = x;
+    p->y = y;
     int ch;
     while (1)
     {
         attron(A_BLINK);
-        mvprintw(player->y, player->x, "\u25B6");
+        mvprintw(p->y, p->x, "\u25B6");
         attroff(A_BLINK);
         ch = getch();
-        if ((ch == KEY_UP || ch == KEY_DOWN || ch == KEY_RIGHT || ch == KEY_LEFT) && (player->x > 0 && player->x < scrX && player->y > 0 && player->y < scrY - 1))
-            mvprintw(player->y, player->x, " ");
+        if ((ch == KEY_UP || ch == KEY_DOWN || ch == KEY_RIGHT || ch == KEY_LEFT) && (p->x > 0 && p->x < scrX && p->y > 0 && p->y < scrY - 1))
+            mvprintw(p->y, p->x, " ");
 
-        if (ch == KEY_UP && player->y > 1)
-            player->y--;
-        else if (ch == KEY_DOWN && player->y < scrY - 2)
-            player->y++;
-        else if (ch == KEY_LEFT && player->x > 1)
-            player->x--;
-        else if (ch == KEY_RIGHT && player->x < scrX - 2)
-            player->x++;
+        if (ch == KEY_UP && p->y > 1)
+            p->y--;
+        else if (ch == KEY_DOWN && p->y < scrY - 2)
+            p->y++;
+        else if (ch == KEY_LEFT && p->x > 1)
+            p->x--;
+        else if (ch == KEY_RIGHT && p->x < scrX - 2)
+            p->x++;
         else if (ch == 'q')
             break;
     }
+}
+
+void printHeart(int health, int hungry)
+{
+    mvprintw(1, 28, "                             ");
+    mvprintw(1, 95, "                             ");
+    for (int i = 0; i < (health + 9) / 10; i++)
+        mvprintw(1, 28 + (3 * i), "\U0001F9E1");
+    for (int i = 0; i < (hungry + 9) / 10; i++)
+        mvprintw(1, 95 + (3 * i), "\U0001F356");
+}
+
+void print_rooms(char username[MAX_NAMES], int p)
+{
+    char path[MAX_LINE];
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, p);
+    FILE *read_floor = fopen(path, "r");
+    int rooms_count;
+    fscanf(read_floor, "%d\n", &rooms_count);
+    Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+    for (int i = 0; i < rooms_count; i++)
+    {
+        fscanf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
+        printRoom(rooms[i]);
+        // mvprintw(rooms[i].y + (rooms[i].h / 2), rooms[i].x + (rooms[i].w / 2), "%d", i);
+    }
+    fclose(read_floor);
+}
+
+void show_corridor(char username[MAX_NAMES], int p)
+{
+    char path[MAX_LINE];
+    sprintf(path, "./.users/%s/~NEW_GAME/cells_%d.txt", username, p);
+    FILE *read_cells = fopen(path, "r");
+    char line[MAX_LINE];
+    attron(COLOR_PAIR(2));
+    while (fgets(line, sizeof(line), read_cells))
+    {
+        int y, x, v;
+        sscanf(line, "%d %d %d\n", &x, &y, &v);
+        if (v)
+            mvprintw(y, x, "\u2593");
+    }
+    attroff(COLOR_PAIR(2));
+    fclose(read_cells);
+}
+
+int find_xy(cell **c, int y, int x, int v)
+{
+    cell *current = *c;
+    while (current != NULL)
+    {
+        if ((current)->x == x && (current)->y == y)
+        {
+            current->v = 1;
+            mvprintw(y, x, "\u2593");
+            return 1;
+        }
+        current = (current)->next;
+    }
+    return 0;
+}
+
+int is_door(Room *rooms, int rooms_count, int y, int x)
+{
+    for (int i = 0; i < rooms_count; i++)
+    {
+        // right door
+        if (rooms[i].rv && x == rooms[i].x + rooms[i].w && y == rooms[i].y + rooms[i].right_door)
+            return i + 1;
+
+        // left door
+        else if (rooms[i].lv && x == rooms[i].x && y == rooms[i].y + rooms[i].left_door)
+            return i + 1;
+
+        // top door
+        else if (rooms[i].tv && x == rooms[i].x + rooms[i].top_door && y == rooms[i].y)
+            return i + 1;
+
+        // down door
+        else if (rooms[i].dv && x == rooms[i].x + rooms[i].down_door && y == rooms[i].y + rooms[i].h)
+            return i + 1;
+    }
+    return 0;
 }
 
 void start_game(int user_mode)
@@ -1684,18 +313,31 @@ void start_game(int user_mode)
     UseColor();
     int scrY, scrX;
     getmaxyx(stdscr, scrY, scrX);
-    int dx = scrX / 2, dy = scrY / 2;
+    int x = scrX / 2, y = scrY / 2;
 
+    int floors = 0;
+
+    // Read UserName
     FILE *read_for_username = fopen("./.users/Login.txt", "r");
     char username[MAX_NAMES];
     fscanf(read_for_username, "%*d\n%s", username);
     fclose(read_for_username);
 
-    int floors = 0;
     char path[MAX_LINE];
     memset(path, 0, sizeof(path));
     sprintf(path, "./.users/%s/~NEW_GAME", username);
-    if (access(path, F_OK) == 0)
+    // If Not Exist = Create User and count floors
+    if (access(path, F_OK) == -1)
+    {
+
+        clear();
+        refresh();
+        flushinp();
+        New_Game(user_mode, username);
+        start_game(user_mode);
+        return;
+    }
+    else
     {
         DIR *readFLoor = opendir(path);
         readFLoor = opendir(path);
@@ -1706,52 +348,451 @@ void start_game(int user_mode)
         {
             if (!strcmp(input->d_name, ".") || !strcmp(input->d_name, ".."))
                 continue;
-            floors++;
+            if (input->d_name[0] == 'f')
+                floors++;
+        }
+    }
+
+    Player *p = (Player *)malloc(sizeof(Player));
+    // Current Status for spawn Player
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/~NEW_GAME/cs.txt", username);
+    int stair_room, current_floor, current_room;
+    FILE *read_cs = fopen(path, "r");
+    fscanf(read_cs, "%d %d\n%d\n%d\n%d\n%d\n%d", &p->x, &p->y, &current_floor, &p->health, &p->hungry, &current_room, &stair_room);
+    fclose(read_cs);
+
+    // Read LeaderBoard
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/LeaderBoard.txt");
+    int users_count;
+    FILE *leaderBoard = fopen(path, "r");
+    fscanf(leaderBoard, "%d\n", &users_count);
+    char names[users_count][MAX_NAMES];
+    int golds[users_count], score[users_count], games[users_count], XPs[users_count], user_index = -1;
+    for (int i = 0; i < users_count; i++)
+    {
+        fscanf(leaderBoard, "%s %d %d %d %d\n", names[i], &golds[i], &score[i], &games[i], &XPs[i]);
+        if (strcmp(username, names[i]) == 0)
+            user_index = i;
+    }
+    fclose(leaderBoard);
+    p->XP = XPs[user_index];
+    p->score = score[user_index];
+    p->golds = golds[user_index];
+
+    // Read Game Setting
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/%s/GameSetting.txt", username);
+    int character, character_color, difficulty;
+    FILE *read_gs = fopen(path, "r");
+    fscanf(read_gs, "%d\n%d\n%d\n%*d\n", &difficulty, &character, &character_color);
+    fclose(read_gs);
+
+    char *characters[5] = {"A", "ᛟ", "ᛸ", "\u2B55", "\U0001F7E5"};
+    char *u26AA[6] = {"\u2B55", "\U0001F7E2", "\U0001F535", "\U0001F7E0", "\U0001F7E4", "\U0001F7E3"};
+    char *u2590[6] = {"\U0001F7E5", "\U0001F7E9", "\U0001F7E6", "\U0001F7E7", "\U0001F7EB", "\U0001F7EA"};
+
+    if (character < 3)
+        strcpy(p->c, characters[character]);
+    else if (character == 3)
+        strcpy(p->c, u26AA[character_color]);
+    else if (character == 4)
+        strcpy(p->c, u2590[character_color]);
+
+    int b = 1;
+    while (b)
+    {
+        // Read cells
+        cell *c = (cell *)malloc(sizeof(cell));
+        char line[MAX_LINE];
+        memset(path, 0, sizeof(path));
+        sprintf(path, "./.users/%s/~NEW_GAME/cells_%d.txt", username, current_floor);
+        FILE *read_cells = fopen(path, "r");
+        if (fgets(line, sizeof(line), read_cells))
+        {
+            int x1, y1, v1;
+            sscanf(line, "%d %d %d\n", &x1, &y1, &v1);
+            c->x = x1;
+            c->y = y1;
+            c->v = v1;
+            c->next = NULL;
+        }
+        while (fgets(line, sizeof(line), read_cells))
+        {
+            int x1, y1, v1;
+            sscanf(line, "%d %d %d\n", &x1, &y1, &v1);
+            add_to_corridor(&c, x1, y1, v1);
         }
 
-        floors = floors / 2;
-    }
-    else
-    {
-        clear();
-        refresh();
-        flushinp();
-        New_Game(user_mode, username);
-        start_game(user_mode);
-        return;
-    }
-
-    int ch, p = 0;
-
-    while (1)
-    {
-        clear();
-        refresh();
-        mvprintw(0, dx, "%d", p + 1);
+        // Read Rooms
         memset(path, 0, sizeof(path));
-        sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, p);
-
-        FILE *read_floor = fopen(path, "r");
+        sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
         int rooms_count;
+        FILE *read_floor = fopen(path, "r");
         fscanf(read_floor, "%d\n", &rooms_count);
         Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
         for (int i = 0; i < rooms_count; i++)
-        {
             fscanf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
-            printRoom(rooms[i]);
-            mvprintw(rooms[i].y + (rooms[i].h / 2), rooms[i].x + (rooms[i].w / 2), "%d", i);
-        }
         fclose(read_floor);
 
-        ch = getch();
+        // ---------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------
 
-        if (ch == 'q')
-            break;
-        else if (ch == KEY_UP)
-            p = (p + floors - 1) % floors;
-        else if (ch == KEY_DOWN)
-            p = (p + 1) % floors;
+        int ch, load_floor = 1, status = current_room, walk = 0, f = 0;
+        // status -1 = in corridor
+        while (1)
+        {
+
+            if (walk > 20)
+            {
+                p->hungry -= (difficulty + 1) * (walk - (walk % 20)) / 10;
+                printHeart(p->health, p->hungry);
+                p->XP += (difficulty + 1) * (walk - (walk % 20)) / 10;
+                walk = 0;
+            }
+
+            int new_room = is_door(rooms, rooms_count, p->y, p->x);
+
+            if (new_room && !rooms[new_room - 1].visible)
+            {
+                rooms[new_room - 1].visible = 1;
+                printRoom(rooms[new_room - 1]);
+                p->XP += 15;
+            }
+
+            if (load_floor)
+            {
+                clear();
+                refresh();
+                printHeart(p->health, p->hungry);
+                attron(COLOR_PAIR(8));
+                mvprintw(0, x - 7, "Bl4ck H0l3 <%d>", current_floor + 1);
+                attroff(COLOR_PAIR(8));
+                show_corridor(username, current_floor);
+                print_rooms(username, current_floor);
+                load_floor = 0;
+                attron(COLOR_PAIR(9) | A_BOLD);
+                mvprintw(2, x - strlen(username) / 2, "%s", username);
+                attroff(COLOR_PAIR(9) | A_BOLD);
+            }
+
+            if (rooms[stair_room].visible && current_floor != floors - 1)
+            {
+                attron(COLOR_PAIR(8));
+                mvprintw(rooms[stair_room].y + rooms[stair_room].h / 2, rooms[stair_room].x + (rooms[stair_room].w / 2) - 2, "<..>");
+                if (current_floor == 0)
+                    mvprintw(rooms[stair_room].y + rooms[stair_room].h / 2, rooms[stair_room].x + (rooms[stair_room].w / 2) - 2, "<.");
+                if (current_floor == floors - 1)
+                    mvprintw(rooms[stair_room].y + rooms[stair_room].h / 2, rooms[stair_room].x + (rooms[stair_room].w / 2), ".>");
+                attroff(COLOR_PAIR(8));
+            }
+
+            mvprintw(1, x - 3, "       ");
+            mvprintw(1, x - 3, "%d %d", p->x, p->y);
+
+            char previous_character = mvinch(p->y, p->x), Next_character;
+
+            attron(COLOR_PAIR(character_color + 20));
+            mvprintw(p->y, p->x, "%s", p->c);
+            attroff(COLOR_PAIR(character_color + 20));
+
+            // getch();
+            ch = getch();
+            // if ((ch == KEY_UP || ch == KEY_DOWN || ch == KEY_RIGHT || ch == KEY_LEFT) && (p->x > 0 && p->x < scrX && p->y > 0 && p->y < scrY - 1))
+            // {
+            if (previous_character == '.')
+            {
+                attron(COLOR_PAIR(8));
+                mvprintw(p->y, p->x, "%c", previous_character);
+                attroff(COLOR_PAIR(8));
+            }
+            else if (previous_character == '>' && ch == '>' && current_floor != floors - 1)
+            {
+                current_floor++;
+
+                free(rooms);
+
+                // Read Rooms
+                memset(path, 0, sizeof(path));
+                sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
+                int rooms_count;
+                read_floor = fopen(path, "r");
+                fscanf(read_floor, "%d\n", &rooms_count);
+                Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+                for (int i = 0; i < rooms_count; i++)
+                    fscanf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
+                fclose(read_floor);
+
+                p->x = random_num(rooms[stair_room].x + 1, rooms[stair_room].x + rooms[stair_room].w - 1);
+                p->y = random_num(rooms[stair_room].y + 1, rooms[stair_room].y + rooms[stair_room].h - 1);
+
+                rooms[stair_room].visible = 1;
+
+                // save rooms
+                sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
+                FILE *write_rooms = fopen(path, "w");
+                fprintf(write_rooms, "%d\n", rooms_count);
+                for (int i = 0; i < rooms_count; i++)
+                    fprintf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
+                fclose(write_rooms);
+                break;
+            }
+            else if (previous_character == '<' && ch == '<' && current_floor != 0)
+            {
+                current_floor--;
+                free(rooms);
+
+                // Read Rooms
+                memset(path, 0, sizeof(path));
+                sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
+                int rooms_count;
+                read_floor = fopen(path, "r");
+                fscanf(read_floor, "%d\n", &rooms_count);
+                Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+                for (int i = 0; i < rooms_count; i++)
+                    fscanf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
+                fclose(read_floor);
+
+                p->x = random_num(rooms[stair_room].x + 1, rooms[stair_room].x + rooms[stair_room].w - 1);
+                p->y = random_num(rooms[stair_room].y + 1, rooms[stair_room].y + rooms[stair_room].h - 1);
+                // save rooms
+                sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
+                FILE *write_rooms = fopen(path, "w");
+                fprintf(write_rooms, "%d\n", rooms_count);
+                for (int i = 0; i < rooms_count; i++)
+                    fprintf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
+                fclose(write_rooms);
+                break;
+            }
+            else
+            {
+                mvprintw(p->y, p->x, "\u2593");
+            }
+            // }
+
+            if (ch == KEY_UP && p->y > 4 && (is_door(rooms, rooms_count, p->y - 1, p->x) || ((char)mvinch(p->y - 1, p->x) >= '!' && (char)mvinch(p->y - 1, p->x) <= '~') || find_xy(&c, p->y - 1, p->x, 1)))
+            {
+                if (f)
+                {
+                    previous_character = mvinch(p->y, p->x);
+                    if (previous_character == '.')
+                    {
+                        attron(COLOR_PAIR(8));
+                        mvprintw(p->y, p->x, "%c", previous_character);
+                        attroff(COLOR_PAIR(8));
+                    }
+                    else
+                        mvprintw(p->y, p->x, "\u2593");
+                    while (ch == KEY_UP && p->y > 4 && (is_door(rooms, rooms_count, p->y - 1, p->x) || ((char)mvinch(p->y - 1, p->x) >= '!' && (char)mvinch(p->y - 1, p->x) <= '~') || find_xy(&c, p->y - 1, p->x, 1)))
+                    {
+                        walk++;
+                        p->y--;
+                        find_xy(&c, p->y - 1, p->x, 1);
+                        find_xy(&c, p->y - 2, p->x, 1);
+                        find_xy(&c, p->y - 1, p->x + 1, 1);
+                        find_xy(&c, p->y - 1, p->x - 1, 1);
+                    }
+                    f = 0;
+                }
+                else
+                {
+                    walk++;
+                    p->y--;
+                    find_xy(&c, p->y - 1, p->x, 1);
+                    find_xy(&c, p->y - 2, p->x, 1);
+                    find_xy(&c, p->y - 1, p->x + 1, 1);
+                    find_xy(&c, p->y - 1, p->x - 1, 1);
+                }
+            }
+            else if (ch == KEY_DOWN && p->y < scrY - 5 && (is_door(rooms, rooms_count, p->y + 1, p->x) || ((char)mvinch(p->y + 1, p->x) >= '!' && (char)mvinch(p->y + 1, p->x) <= '~') || find_xy(&c, p->y + 1, p->x, 1)))
+            {
+                if (f)
+                {
+                    previous_character = mvinch(p->y, p->x);
+                    if (previous_character == '.')
+                    {
+                        attron(COLOR_PAIR(8));
+                        mvprintw(p->y, p->x, "%c", previous_character);
+                        attroff(COLOR_PAIR(8));
+                    }
+                    else
+                        mvprintw(p->y, p->x, "\u2593");
+                    while (ch == KEY_DOWN && p->y < scrY - 5 && (is_door(rooms, rooms_count, p->y + 1, p->x) || ((char)mvinch(p->y + 1, p->x) >= '!' && (char)mvinch(p->y + 1, p->x) <= '~') || find_xy(&c, p->y + 1, p->x, 1)))
+                    {
+                        walk++;
+                        p->y++;
+                        find_xy(&c, p->y + 1, p->x, 1);
+                        find_xy(&c, p->y + 2, p->x, 1);
+                        find_xy(&c, p->y + 1, p->x + 1, 1);
+                        find_xy(&c, p->y + 1, p->x - 1, 1);
+                    }
+                    f = 0;
+                }
+                else
+                {
+                    walk++;
+                    p->y++;
+                    find_xy(&c, p->y + 1, p->x, 1);
+                    find_xy(&c, p->y + 2, p->x, 1);
+                    find_xy(&c, p->y + 1, p->x + 1, 1);
+                    find_xy(&c, p->y + 1, p->x - 1, 1);
+                }
+            }
+            else if (ch == KEY_LEFT && p->x > 1 && (is_door(rooms, rooms_count, p->y, p->x - 1) || ((char)mvinch(p->y, p->x - 1) >= '!' && (char)mvinch(p->y, p->x - 1) <= '~') || find_xy(&c, p->y, p->x - 1, 1)))
+            {
+                if (f)
+                {
+                    previous_character = mvinch(p->y, p->x);
+                    if (previous_character == '.')
+                    {
+                        attron(COLOR_PAIR(8));
+                        mvprintw(p->y, p->x, "%c", previous_character);
+                        attroff(COLOR_PAIR(8));
+                    }
+                    else
+                        mvprintw(p->y, p->x, "\u2593");
+                    while (ch == KEY_LEFT && p->x > 1 && (is_door(rooms, rooms_count, p->y, p->x - 1) || ((char)mvinch(p->y, p->x - 1) >= '!' && (char)mvinch(p->y, p->x - 1) <= '~') || find_xy(&c, p->y, p->x - 1, 1)))
+                    {
+                        walk++;
+                        p->x--;
+                        find_xy(&c, p->y, p->x - 1, 1);
+                        find_xy(&c, p->y, p->x - 2, 1);
+                        find_xy(&c, p->y + 1, p->x - 1, 1);
+                        find_xy(&c, p->y - 1, p->x - 1, 1);
+                    }
+
+                    f = 0;
+                }
+                else
+                {
+                    walk++;
+                    p->x--;
+                    find_xy(&c, p->y, p->x - 1, 1);
+                    find_xy(&c, p->y, p->x - 2, 1);
+                    find_xy(&c, p->y + 1, p->x - 1, 1);
+                    find_xy(&c, p->y - 1, p->x - 1, 1);
+                }
+            }
+            else if (ch == KEY_RIGHT && p->x < scrX - 2 && (is_door(rooms, rooms_count, p->y, p->x + 1) || ((char)mvinch(p->y, p->x + 1) >= '!' && (char)mvinch(p->y, p->x + 1) <= '~') || find_xy(&c, p->y, p->x + 1, 1)))
+            {
+                if (f)
+                {
+                    previous_character = mvinch(p->y, p->x);
+                    if (previous_character == '.')
+                    {
+                        attron(COLOR_PAIR(8));
+                        mvprintw(p->y, p->x, "%c", previous_character);
+                        attroff(COLOR_PAIR(8));
+                    }
+                    else
+                        mvprintw(p->y, p->x, "\u2593");
+                    while (ch == KEY_RIGHT && p->x < scrX - 2 && (is_door(rooms, rooms_count, p->y, p->x + 1) || ((char)mvinch(p->y, p->x + 1) >= '!' && (char)mvinch(p->y, p->x + 1) <= '~') || find_xy(&c, p->y, p->x + 1, 1)))
+                    {
+                        walk++;
+                        p->x++;
+                        find_xy(&c, p->y, p->x + 1, 1);
+                        find_xy(&c, p->y, p->x + 2, 1);
+                        find_xy(&c, p->y + 1, p->x + 1, 1);
+                        find_xy(&c, p->y - 1, p->x + 1, 1);
+                    }
+                    f = 0;
+                }
+                else
+                {
+                    walk++;
+                    p->x++;
+                    find_xy(&c, p->y, p->x + 1, 1);
+                    find_xy(&c, p->y, p->x + 2, 1);
+                    find_xy(&c, p->y + 1, p->x + 1, 1);
+                    find_xy(&c, p->y - 1, p->x + 1, 1);
+                }
+            }
+            else if (ch == 'q')
+            {
+                // WINDOW *win = newwin(scrY, scrX, 0, 0);
+                // box(win, 0, 0);
+                // mvwprintw(win, scrY / 2, scrX / 2, "");
+#pragma region save
+
+                // save cells
+                memset(path, 0, sizeof(path));
+                sprintf(path, "./.users/%s/~NEW_GAME/cells_%d.txt", username, current_floor);
+                FILE *file = fopen(path, "w");
+                while (c != NULL)
+                {
+                    fprintf(file, "%d %d %d\n", c->x, c->y, c->v);
+                    c = c->next;
+                }
+                fclose(file);
+                free(c);
+
+                // save rooms
+                sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
+                FILE *write_rooms = fopen(path, "w");
+                fprintf(write_rooms, "%d\n", rooms_count);
+                for (int i = 0; i < rooms_count; i++)
+                    fprintf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
+                fclose(write_rooms);
+                b = 0;
+                break;
+            }
+            else if (ch == 'm')
+            {
+                WINDOW *win = newwin(scrY, scrX, 0, 0);
+                box(win, 0, 0);
+                for (int j = 0; j < rooms_count; j++)
+                {
+                    wprintRoom(rooms[j], win);
+                    wrefresh(win);
+                }
+                getch();
+                delwin(win);
+                clear();
+                refresh();
+                load_floor = 1;
+                continue;
+            }
+            else if (ch == 'e')
+            {
+#pragma region save
+                // break;
+            }
+            else if (ch == 'f')
+                f = !f;
+            else if (ch == 'g')
+            {
+#pragma region save
+                // break;
+            }
+            new_room = 0;
+        }
     }
+
+    // Read LeaderBoard
+    XPs[user_index] = p->XP;
+    score[user_index] = p->score;
+    golds[user_index] = p->golds;
+    memset(path, 0, sizeof(path));
+    sprintf(path, "./.users/LeaderBoard.txt");
+    leaderBoard = fopen(path, "w");
+    fprintf(leaderBoard, "%d\n", users_count);
+    for (int i = 0; i < users_count; i++)
+    {
+        fprintf(leaderBoard, "%s %d %d %d %d\n", names[i], golds[i], score[i], games[i], XPs[i]);
+        if (strcmp(username, names[i]) == 0)
+            user_index = i;
+    }
+    fclose(leaderBoard);
+
+    // current status of user
+    sprintf(path, "./.users/%s/~NEW_GAME/cs.txt", username);
+    FILE *write_cs = fopen(path, "w");
+    fprintf(write_cs, "%d %d\n%d\n%d\n%d\n%d\n%d\n", p->x, p->y, current_floor, p->health, p->hungry, current_room, stair_room);
+    fclose(write_cs);
+
     clear();
     refresh();
     flushinp();
