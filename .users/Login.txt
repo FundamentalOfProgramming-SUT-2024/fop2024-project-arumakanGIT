@@ -1,13 +1,2 @@
-12
-bita 535b4755575f4359a401 bita@gmail.com
-amin 0c0c1331090f1956554d03 mazhbp84@gmail.com
-asal 5041525854455654a401 asal@sharif.edu
-reza 4357495547534d59a401 reza@sharif.gmail
-parsa 415341475446564aa401 parsa@gmail.com
-masiha 5c53405d5d575a59a401 masiha@sharif.edu
-amir 505f5a46545b5e4aa401 amir@gmail.com
-sina 425b5d55465f5959a401 sina@sharif.edu
-parisa 4153415d46574759a401 parisa@gmail.com
-puya 41474a5545434e59a401 puya@gmail.com
-nima 5f5b5e555b5f5a59a401 nima@gmail.com
-mina 5c5b5d55585f5959a401 mina@sharif.edu
+1
+amin 0c0c1331090f1956554d03 amin@sharif.edu

@@ -96,22 +96,22 @@ void printRoom(Room r)
     attron(COLOR_PAIR(2));
     if (r.tv)
         mvprintw(r.y, r.x + r.top_door, "\u2593");
-    // else if (random_num(0, 1))
-    // mvprintw(r.y, r.x + r.top_door, ".");
+    else
+        mvprintw(r.y, r.x + r.top_door, ".");
 
     if (r.dv)
         mvprintw(r.y + r.h, r.x + r.down_door, "\u2593");
-    // else if (random_num(0, 1))
-    // mvprintw(r.y + r.h, r.x + r.down_door, ".");
+    else
+        mvprintw(r.y + r.h, r.x + r.down_door, ".");
 
     if (r.rv)
         mvprintw(r.y + r.right_door, r.x + r.w, "\u2593");
-    // else if (random_num(0, 1))
-    // mvprintw(r.y + r.right_door, r.x + r.w, ".");
+    else
+        mvprintw(r.y + r.right_door, r.x + r.w, ".");
     if (r.lv)
         mvprintw(r.y + r.left_door, r.x, "\u2593");
-    // else if (random_num(0, 1))
-    // mvprintw(r.y + r.left_door, r.x, ".");
+    else
+        mvprintw(r.y + r.left_door, r.x, ".");
 
     attroff(COLOR_PAIR(2));
 }
@@ -454,6 +454,13 @@ void start_game(int user_mode)
                 walk = 0;
             }
 
+            attron(COLOR_PAIR(9) | A_BOLD);
+            mvprintw(scrY - 2, x - 4, "Golds = %d", p->golds);
+            attroff(COLOR_PAIR(9) | A_BOLD);
+            attron(COLOR_PAIR(9) | A_BOLD);
+            mvprintw(scrY - 2, x - 4, "Golds = %d", p->golds);
+            attroff(COLOR_PAIR(9) | A_BOLD);
+
             int new_room = is_door(rooms, rooms_count, p->y, p->x);
 
             if (new_room && !rooms[new_room - 1].visible)
@@ -477,6 +484,10 @@ void start_game(int user_mode)
                 attron(COLOR_PAIR(9) | A_BOLD);
                 mvprintw(2, x - strlen(username) / 2, "%s", username);
                 attroff(COLOR_PAIR(9) | A_BOLD);
+
+                attron(COLOR_PAIR(9) | A_BOLD);
+                mvprintw(scrY - 2, x - 4, "Golds = %d", p->golds);
+                attroff(COLOR_PAIR(9) | A_BOLD);
             }
 
             if (rooms[stair_room].visible && current_floor != floors - 1)
@@ -489,9 +500,15 @@ void start_game(int user_mode)
                     mvprintw(rooms[stair_room].y + rooms[stair_room].h / 2, rooms[stair_room].x + (rooms[stair_room].w / 2), ".>");
                 attroff(COLOR_PAIR(8));
             }
+            else
+            {
+                attron(COLOR_PAIR(8));
+                mvprintw(rooms[stair_room].y + rooms[stair_room].h / 2, rooms[stair_room].x + (rooms[stair_room].w / 2) - 2, "<..>");
+                attroff(COLOR_PAIR(8));
+            }
 
-            mvprintw(1, x - 3, "       ");
-            mvprintw(1, x - 3, "%d %d", p->x, p->y);
+            // mvprintw(1, x - 3, "       ");
+            // mvprintw(1, x - 3, "%d %d", p->x, p->y);
 
             char previous_character = mvinch(p->y, p->x), Next_character;
 
@@ -540,33 +557,70 @@ void start_game(int user_mode)
                 fclose(write_rooms);
                 break;
             }
-            else if (previous_character == '<' && ch == '<' && current_floor != 0)
+            // else if (previous_character == '<' && ch == '<' && current_floor != 0)
+            // {
+            //     current_floor--;
+            //     free(rooms);
+
+            //     // Read Rooms
+            //     memset(path, 0, sizeof(path));
+            //     sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
+            //     int rooms_count;
+            //     read_floor = fopen(path, "r");
+            //     fscanf(read_floor, "%d\n", &rooms_count);
+            //     Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
+            //     for (int i = 0; i < rooms_count; i++)
+            //         fscanf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
+            //     fclose(read_floor);
+
+            //     p->x = random_num(rooms[stair_room].x + 1, rooms[stair_room].x + rooms[stair_room].w - 1);
+            //     p->y = random_num(rooms[stair_room].y + 1, rooms[stair_room].y + rooms[stair_room].h - 1);
+            //     // save rooms
+            //     sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
+            //     FILE *write_rooms = fopen(path, "w");
+            //     fprintf(write_rooms, "%d\n", rooms_count);
+            //     for (int i = 0; i < rooms_count; i++)
+            //         fprintf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
+            //     fclose(write_rooms);
+            //     break;
+            // }
+            else if (previous_character == '<' && ch == '<')
             {
-                current_floor--;
-                free(rooms);
+                // WINDOW *win = newwin(scrY, scrX, 0, 0);
+                // box(win, 0, 0);
+                clear();
+                refresh();
+                mvprintw(y, x, "You Win!");
+                // for (int j = 0; j < rooms_count; j++)
+                // {
+                // wprintRoom(rooms[j], win);
+                // wrefresh(win);
+                // }
+                getch();
+                // delwin(win);
+                clear();
+                refresh();
 
-                // Read Rooms
+                // Read LeaderBoard
+                XPs[user_index] = p->XP;
+                score[user_index] = p->score;
+                golds[user_index] = p->golds;
+                games[user_index]++;
+
                 memset(path, 0, sizeof(path));
-                sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
-                int rooms_count;
-                read_floor = fopen(path, "r");
-                fscanf(read_floor, "%d\n", &rooms_count);
-                Room *rooms = (Room *)malloc(sizeof(Room) * rooms_count);
-                for (int i = 0; i < rooms_count; i++)
-                    fscanf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", &rooms[i].x, &rooms[i].y, &rooms[i].h, &rooms[i].w, &rooms[i].visible, &rooms[i].kind, &rooms[i].top_door, &rooms[i].down_door, &rooms[i].right_door, &rooms[i].left_door, &rooms[i].tv, &rooms[i].dv, &rooms[i].rv, &rooms[i].lv);
-                fclose(read_floor);
-
-                p->x = random_num(rooms[stair_room].x + 1, rooms[stair_room].x + rooms[stair_room].w - 1);
-                p->y = random_num(rooms[stair_room].y + 1, rooms[stair_room].y + rooms[stair_room].h - 1);
-                // save rooms
-                sprintf(path, "./.users/%s/~NEW_GAME/floor_%d.txt", username, current_floor);
-                FILE *write_rooms = fopen(path, "w");
-                fprintf(write_rooms, "%d\n", rooms_count);
-                for (int i = 0; i < rooms_count; i++)
-                    fprintf(read_floor, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", rooms[i].x, rooms[i].y, rooms[i].h, rooms[i].w, rooms[i].visible, rooms[i].kind, rooms[i].top_door, rooms[i].down_door, rooms[i].right_door, rooms[i].left_door, rooms[i].tv, rooms[i].dv, rooms[i].rv, rooms[i].lv);
-                fclose(write_rooms);
-                break;
+                sprintf(path, "./.users/LeaderBoard.txt");
+                leaderBoard = fopen(path, "w");
+                fprintf(leaderBoard, "%d\n", users_count);
+                for (int i = 0; i < users_count; i++)
+                {
+                    fprintf(leaderBoard, "%s %d %d %d %d\n", names[i], golds[i], score[i], games[i], XPs[i]);
+                    // if (strcmp(username, names[i]) == 0)
+                    // user_index = i;
+                }
+                fclose(leaderBoard);
+                return;
             }
+
             else
             {
                 mvprintw(p->y, p->x, "\u2593");

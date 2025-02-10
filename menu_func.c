@@ -390,7 +390,7 @@ void addToLeaderBoard(char username[MAX_NAMES])
 
     for (int i = 0; i < users_count - 1; i++)
         for (int j = i + 1; j < users_count; j++)
-            if (golds[j] > golds[i])
+            if (ex[j] > ex[i])
             {
                 char n[MAX_NAMES];
                 int t;
@@ -1975,7 +1975,7 @@ void leaderBoard(char username[MAX_NAMES])
 
     for (int i = 0; i < users_count - 1; i++)
         for (int j = i + 1; j < users_count; j++)
-            if (golds[j] > golds[i])
+            if (ex[j] > ex[i])
             {
                 char n[MAX_NAMES];
                 int t;
@@ -2541,7 +2541,7 @@ void sortLB()
 
     for (int i = 0; i < users_count - 1; i++)
         for (int j = i + 1; j < users_count; j++)
-            if (golds[j] > golds[i])
+            if (ex[j] > ex[i])
             {
                 char n[MAX_NAMES];
                 int t;
@@ -2611,7 +2611,7 @@ void profile_menu(int user_mode, char username[MAX_NAMES])
 
         for (int i = 0; i < users_count - 1; i++)
             for (int j = i + 1; j < users_count; j++)
-                if (golds[j] > golds[i])
+                if (ex[j] > ex[i])
                 {
                     char n[MAX_NAMES];
                     int t;
@@ -4139,7 +4139,7 @@ void New_Game(int user_mode, char username[MAX_NAMES])
             for (int l = 0; l < rooms_count; l++)
                 if ((rooms[l].tv + rooms[l].dv + rooms[l].lv + rooms[l].rv == 1) && enchant++ == 1)
                     rooms[l].kind = 1;
-            
+
             if (i == floor - 1)
             {
                 rooms[0].visible = 1;
